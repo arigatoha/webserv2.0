@@ -119,6 +119,7 @@ int main(int argc, char *argv[]) {
 		}
 		for (int i = 0; i < nfds; ++i) {
 			if (events[i].data.fd == listen_sock) {
+				struct	sockaddr_storage client_addr;
 				conn_sock = accept(listen_sock, rp->ai_addr, &rp->ai_addrlen);
 				if (conn_sock == -1) {
 					fprintf(stderr, "accept: %s\n", strerror(errno));
