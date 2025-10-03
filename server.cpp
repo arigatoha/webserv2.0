@@ -8,6 +8,8 @@
 #include <cstring>
 #include <string>
 #include <errno.h>
+#include <iostream>
+#include <map>
 
 #define BUF_SIZE 4096
 #define LISTEN_BACKLOG 50
@@ -26,7 +28,22 @@ void	hints_init(struct addrinfo *hints) {
 
 void	disconnect_client();
 
-void	do_use_fd(int client_fd) {
+
+
+class Client {
+	public:
+
+		std::string request_buffer;
+		ssize_t		keep_alive_timer;
+
+		Client();
+		~Client();
+
+		Client(const Client &other);
+		Client &operator=(const Client &other);
+};
+
+void	handle_client_event(int client_fd, int epoll_fd, std::map<int, Client> &clients) {
 	char				temp_buf[BUF_SIZE];
 	std::string			client_req;
 
@@ -50,11 +67,12 @@ void	do_use_fd(int client_fd) {
 }
 
 int main(int argc, char *argv[]) {
-	int                 listen_sock, conn_sock, s, epoll_fd, nfds, optval_int;
-	struct addrinfo		hints;
-	struct addrinfo		*result, *rp;
-	socklen_t			addr_len;
-	struct epoll_event	ev, events[MAX_EVENTS];
+	int                 	listen_sock, conn_sock, s, epoll_fd, nfds, optval_int;
+	struct addrinfo			hints;
+	struct addrinfo			*result, *rp;
+	socklen_t				addr_len;
+	struct epoll_event		ev, events[MAX_EVENTS];
+	std::map<int, Client>	clients;
 
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s port\n", argv[0]);
@@ -75,7 +93,7 @@ int main(int argc, char *argv[]) {
 		if (listen_sock == -1)
 			continue;
 
-		if (setsockopt(listen_sock, IPPROTO_TCP, SO_REUSEADDR, &optval_int, sizeof(int)) == -1) {
+		if (setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &optval_int, sizeof(int)) == -1) {
 			fprintf(stderr, "setsockopt: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);    
 		}
@@ -119,24 +137,32 @@ int main(int argc, char *argv[]) {
 		}
 		for (int i = 0; i < nfds; ++i) {
 			if (events[i].data.fd == listen_sock) {
-				struct	sockaddr_storage client_addr;
-				conn_sock = accept(listen_sock, rp->ai_addr, &rp->ai_addrlen);
+				struct	sockaddr_storage	client_addr;
+				socklen_t	clientaddr_len = sizeof(client_addr);
+
+				conn_sock = accept(listen_sock, reinterpret_cast<sockaddr*>(&client_addr), &clientaddr_len);
 				if (conn_sock == -1) {
-					fprintf(stderr, "accept: %s\n", strerror(errno));
-					if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ECONNABORTED)
+					if (errno == EAGAIN || errno == EWOULDBLOCK)
 						continue;
-					else
-						exit(EXIT_FAILURE);
+					else {
+						fprintf(stderr, "accept: %s\n", strerror(errno));
+						continue;
+					}
+
 				}
-				ev.events = EPOLLIN | EPOLLOUT;
+				ev.events = EPOLLIN;
 				ev.data.fd = conn_sock;
 				if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, conn_sock, &ev) == -1) {
 					fprintf(stderr, "epoll_ctl (conn_sock): %s\n", strerror(errno));
-					exit(EXIT_FAILURE);
+					close(conn_sock);
+				}
+				else {
+					clients[conn_sock] = Client();
+					std::cout << "New connection on fd " << conn_sock << std::endl;
 				}
 			}
 			else {
-				do_use_fd(events[i].data.fd); // TODO fork
+				handle_client_event(events[i].data.fd, epoll_fd, clients);
 			}
 		}
 	}

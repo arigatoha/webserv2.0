@@ -17,14 +17,19 @@ class ParseRequest {
 
 		HttpRequest     req;
 
+		enum ParseResult {
+			ParsingError,
+			ParsingComplete,
+			ParsingIncomplete,
+		};
 
-		ParseRequest(std::string &rough_request);
-		~ParseRequest();
+        ParseRequest(std::string &rough_request);
+        ~ParseRequest();
 
 		ParseRequest(const ParseRequest &other);
 		ParseRequest &operator=(const ParseRequest &other);
 
-
+		ParseResult		parse(std::string &raw_request);
 
 		bool    		isError();
 		bool    		isRequest();

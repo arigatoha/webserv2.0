@@ -1,6 +1,7 @@
 #include "parser.hpp"
 
 #define	EOL	"\r\n"
+#define	EOF	"\r\n\r\n"
 #define SPACE ' '
 
 /* Finds token in the src, if it's not there returns the src. */
@@ -21,28 +22,31 @@ std::string		ParseRequest::trimToken(std::string &src, T token) {
 	return src;
 }
 
-ParseRequest::parseFirstLine(std::string &_current_line) {
+void ParseRequest::parseFirstLine(std::string &_current_line) {
 	std::string		_substring;
 
-	_current_line = ParseRequest::trimToken(raw_request, EOL);
-	_substring = ParseRequest::trimToken(_current_line, SPACE);
+	_substring = trimToken(_current_line, SPACE);
 	if (_substring != "GET" || _substring != "POST" || _substring != "DELETE") {
 		// TODO handle not supported method
 	}
 	this->req.method = _substring; // TODO maybe tolower()
-	_substring = ParseRequest::trimToken(_current_line, '?');
+	_substring = trimToken(_current_line, '?');
 	if (_substring != _current_line) {
 		this->req.path = _substring;
-		this->req.query_str = ParseRequest::trimToken(_current_line, SPACE);
+		this->req.query_str = trimToken(_current_line, SPACE);
 	}
 	else
-		this->req.path = ParseRequest::trimToken(_current_line, SPACE);
-	this->req.http_ver = ParseRequest::trimToken(_current_line, EOL);
+		this->req.path = trimToken(_current_line, SPACE);
+	this->req.http_ver = trimToken(_current_line, EOL);
 }
 
-ParseRequest::ParseRequest(std::string &raw_request) {
+ParseRequest::ParseResult ParseRequest::parse(std::string &raw_request) {
+		if (trimToken(raw_request, EOF) == raw_request)
 	
+	_current_line = trimToken(raw_request, EOL);
 }
+
+ParseRequest::ParseRequest(std::string &raw_request) {}
 
 ParseRequest::~ParseRequest() {}
 
