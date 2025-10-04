@@ -22,31 +22,70 @@ std::string		ParseRequest::trimToken(std::string &src, T token) {
 	return src;
 }
 
-void ParseRequest::parseFirstLine(std::string &_current_line) {
+
+ParseRequest::ParseResult		ParseRequest::parseMethod(std::string &first_line) {
 	std::string		_substring;
 
-	_substring = trimToken(_current_line, SPACE);
+	_substring = trimToken(first_line, SPACE);
 	if (_substring != "GET" || _substring != "POST" || _substring != "DELETE") {
-		// TODO handle not supported method
+		return ParsingError;
 	}
-	this->req.method = _substring; // TODO maybe tolower()
-	_substring = trimToken(_current_line, '?');
-	if (_substring != _current_line) {
+	this->req.method = _substring; // TODO: maybe tolower()
+	return ParsingComplete;
+}
+
+
+void		ParseRequest::parsePathAndQuery(std::string &line_remainder) {
+	std::string		_substring;
+
+	_substring = trimToken(line_remainder, '?');
+	if (_substring != line_remainder) {
 		this->req.path = _substring;
-		this->req.query_str = trimToken(_current_line, SPACE);
+		this->req.query_str = trimToken(line_remainder, SPACE);
 	}
-	else
-		this->req.path = trimToken(_current_line, SPACE);
-	this->req.http_ver = trimToken(_current_line, EOL);
+	else {
+		this->req.path = trimToken(line_remainder, SPACE);
+		this->req.query_str = "";
+	}
+}
+
+
+void		ParseRequest::parseHttpVer(std::string &line_remainder) {
+	this->req.http_ver = trimToken(line_remainder, EOL);
+}
+
+
+void		ParseRequest::parseHeaders(std::string &line) {}
+void		ParseRequest::parseBody(std::string &line) {}
+
+
+ParseRequest::ParseResult ParseRequest::parseFirstLine(std::string &_current_line) {
+	if (parseMethod(_current_line) == ParsingError)
+		return ParsingError;
+
+	parseHttpVer(_current_line);
+	parsePathAndQuery(_current_line);
+
+	return ParsingComplete;
 }
 
 ParseRequest::ParseResult ParseRequest::parse(std::string &raw_request) {
-		if (trimToken(raw_request, EOF) == raw_request)
+	std::string		_current_line;
 	
+	if (trimToken(raw_request, EOF) == raw_request)
+		return ParsingIncomplete;
+
 	_current_line = trimToken(raw_request, EOL);
+	if (parseFirstLine(_current_line) == ParsingError)
+		return ParsingError;
+
+	parseHeaders(_current_line);
+	parseBody(raw_request);
+
+	return ParsingComplete;
 }
 
-ParseRequest::ParseRequest(std::string &raw_request) {}
+ParseRequest::ParseRequest() {}
 
 ParseRequest::~ParseRequest() {}
 

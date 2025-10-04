@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <iostream>
 #include <map>
+#include "parser.hpp"
 
 #define BUF_SIZE 4096
 #define LISTEN_BACKLOG 50
@@ -44,25 +45,31 @@ class Client {
 };
 
 void	handle_client_event(int client_fd, int epoll_fd, std::map<int, Client> &clients) {
+	ssize_t				bytes_read;
 	char				temp_buf[BUF_SIZE];
-	std::string			client_req;
+	std::string			&client_req = clients[client_fd].request_buffer;
 
-	for (ssize_t bytes_read = 0;;) {
-		bytes_read = recv(client_fd, temp_buf, BUF_SIZE, 0);
-		if (bytes_read > 0) {
-			client_req.append(temp_buf);
-			if (client_req.size() > MAX_REQUEST_SIZE) {
-				// TODO send error 413 and close
-			}
-			parseRequest();
+	bytes_read = recv(client_fd, temp_buf, BUF_SIZE, 0);
+	if (bytes_read > 0) {
+		client_req.append(temp_buf);
+		if (client_req.size() > MAX_REQUEST_SIZE) {
+			// TODO send error 413 and close
 		}
-		else if (bytes_read == 0) {
-			disconnect_client();
+		if (ParseRequest::parse(client_req) == ParseRequest::ParsingComplete) {
+			// TODO send response
+			std::cout << "Request parsed successfully:\n" << client_req << std::endl;
+			client_req.clear();
 		}
 		else {
-			fprintf(stderr, "Client: %s port\n", strerror(errno));
-			disconnect_client(); //TODO
+			// wait for more data
 		}
+	}
+	else if (bytes_read == 0) {
+		disconnect_client();
+	}
+	else {
+		fprintf(stderr, "Client: %s port\n", strerror(errno));
+		disconnect_client(); //TODO
 	}
 }
 

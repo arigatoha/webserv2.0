@@ -23,23 +23,28 @@ class ParseRequest {
 			ParsingIncomplete,
 		};
 
-        ParseRequest(std::string &rough_request);
+        ParseRequest();
         ~ParseRequest();
 
 		ParseRequest(const ParseRequest &other);
 		ParseRequest &operator=(const ParseRequest &other);
 
-		ParseResult		parse(std::string &raw_request);
+		static ParseResult		parse(std::string &raw_request);
 
 		bool    		isError();
 		bool    		isRequest();
 
 	private:
 
-		void	parseFirstLine(std::string &_current_line);
+		static ParseRequest::ParseResult		parseFirstLine(std::string &_current_line);
 
 		template <typename T>
-		std::string		trimToken(std::string &src, T token);
+		static std::string						trimToken(std::string &src, T token);
 
+		static ParseRequest::ParseResult		parseMethod(std::string &first_line);
+		static void							parsePathAndQuery(std::string &line_remainder);
+		static void							parseHttpVer(std::string &line_remainder);
+		static void							parseHeaders(std::string &line);
+		static void							parseBody(std::string &line);
 		
-};
+};	
