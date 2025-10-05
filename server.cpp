@@ -11,13 +11,15 @@
 #include <iostream>
 #include <map>
 #include "parser.hpp"
+#include "Client.hpp"
+#include "server.hpp"
 
 #define BUF_SIZE 4096
 #define LISTEN_BACKLOG 50
 #define MAX_EVENTS 10
 #define MAX_REQUEST_SIZE 8192
 
-void	hints_init(struct addrinfo *hints) {
+void	Server::hints_init(struct addrinfo *hints) {
 	memset(&hints, 0, sizeof(hints));
 	hints->ai_family = AF_UNSPEC;
 	hints->ai_socktype = SOCK_STREAM;
@@ -27,88 +29,87 @@ void	hints_init(struct addrinfo *hints) {
 	hints->ai_next = NULL;
 }
 
-void	disconnect_client();
+void	Server::disconnect_client(int client_fd, int epoll_fd, std::map<int, Client> &clients) {
+	if (epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL) == -1) {
+		fprintf(stderr, "epoll_ctl (DEL): %s\n", strerror(errno));
+	}
+	close(client_fd);
+	clients.erase(client_fd);
+	std::cout << "Client on fd " << client_fd << " disconnected." << std::endl;
+}
 
-
-
-class Client {
-	public:
-
-		std::string request_buffer;
-		ssize_t		keep_alive_timer;
-
-		Client();
-		~Client();
-
-		Client(const Client &other);
-		Client &operator=(const Client &other);
-};
-
-void	handle_client_event(int client_fd, int epoll_fd, std::map<int, Client> &clients) {
+void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Client> &clients) {
 	ssize_t				bytes_read;
 	char				temp_buf[BUF_SIZE];
 	std::string			&client_req = clients[client_fd].request_buffer;
+	Client &client = clients[client_fd];
 
 	bytes_read = recv(client_fd, temp_buf, BUF_SIZE, 0);
 	if (bytes_read > 0) {
 		client_req.append(temp_buf);
 		if (client_req.size() > MAX_REQUEST_SIZE) {
-			// TODO send error 413 and close
+			send(client_fd, "HTTP/1.1 413 Payload Too Large\r\n\r\n", 32, 0);
+			this->disconnect_client(client_fd, epoll_fd, clients);
+			return;
 		}
-		if (ParseRequest::parse(client_req) == ParseRequest::ParsingComplete) {
-			// TODO send response
+		if (client.parser.parse(client_req) == ParseRequest::ParsingComplete) {
+			this->handle_parsed_request(clients[client_fd].req, client_fd);
 			std::cout << "Request parsed successfully:\n" << client_req << std::endl;
 			client_req.clear();
 		}
 		else {
-			// wait for more data
+			return;
 		}
 	}
 	else if (bytes_read == 0) {
-		disconnect_client();
+		this->disconnect_client(client_fd, epoll_fd, clients);
 	}
 	else {
 		fprintf(stderr, "Client: %s port\n", strerror(errno));
-		disconnect_client(); //TODO
+		this->disconnect_client(client_fd, epoll_fd, clients);
 	}
 }
 
-int main(int argc, char *argv[]) {
-	int                 	listen_sock, conn_sock, s, epoll_fd, nfds, optval_int;
-	struct addrinfo			hints;
-	struct addrinfo			*result, *rp;
-	socklen_t				addr_len;
-	struct epoll_event		ev, events[MAX_EVENTS];
-	std::map<int, Client>	clients;
+void Server::run() {
+	struct epoll_event		ev;
 
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s port\n", argv[0]);
+	this->init_sockets();
+
+	if (listen(this->listen_sock, LISTEN_BACKLOG) == -1) {
+		fprintf(stderr, "listen: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+	this->init_epoll(&ev);
+	this->run_event_loop(&ev);
+}
 
-	hints_init(&hints);
-
-	s = getaddrinfo(argv[1], NULL, &hints, &result);
+void	Server::init_sockets() {
+	struct addrinfo			*result, *rp;
+	struct addrinfo			hints;
+	int						s, optval_int;
+	
+	this->hints_init(&hints);
+	s = getaddrinfo(NULL, "8080", &hints, &result); // for now hardcoded port
 	if (s != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
 		exit(EXIT_FAILURE);
 	}
 	optval_int = 1;
 	for (rp = result; rp != NULL; rp = rp->ai_next) {
-		listen_sock = socket(rp->ai_family, rp->ai_socktype,
+		this->listen_sock = socket(rp->ai_family, rp->ai_socktype,
 					rp->ai_protocol);
-		if (listen_sock == -1)
+		if (this->listen_sock == -1)
 			continue;
 
-		if (setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &optval_int, sizeof(int)) == -1) {
+		if (setsockopt(this->listen_sock, SOL_SOCKET, SO_REUSEADDR, &optval_int, sizeof(int)) == -1) {
 			fprintf(stderr, "setsockopt: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);    
 		}
 
-		if (bind(listen_sock, rp->ai_addr, rp->ai_addrlen) == 0)
+		if (bind(this->listen_sock, rp->ai_addr, rp->ai_addrlen) == 0)
 			break;
 		
-		close(listen_sock);
+		close(this->listen_sock);
 	}
 	freeaddrinfo(result);
 
@@ -117,24 +118,26 @@ int main(int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	addr_len = sizeof(rp);
+}
 
-	if (listen(listen_sock, LISTEN_BACKLOG) == -1) {
-		fprintf(stderr, "listen: %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
-	epoll_fd = epoll_create1(0);
-	if (epoll_fd == -1) {
+void	Server::init_epoll(epoll_event *ev) {
+	this->epoll_fd = epoll_create1(0);
+	if (this->epoll_fd == -1) {
 		fprintf(stderr, "epoll_create1: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	ev.events = EPOLLIN;
-	ev.data.fd = listen_sock;
-	if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
-		fprintf(stderr, "epoll_ctl (listen_sock): %s\n", strerror(errno));
+
+	ev->events = EPOLLIN;
+	ev->data.fd = this->listen_sock;
+	if (epoll_ctl(this->epoll_fd, EPOLL_CTL_ADD, this->listen_sock, &ev) == -1) {
+		fprintf(stderr, "epoll_ctl: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+}
+
+void	Server::run_event_loop(epoll_event *ev) {
+	int                 	conn_sock, nfds;
+	struct epoll_event		events[MAX_EVENTS];
 
 	for (;;) {
 		nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
@@ -143,11 +146,11 @@ int main(int argc, char *argv[]) {
 			exit(EXIT_FAILURE);
 		}
 		for (int i = 0; i < nfds; ++i) {
-			if (events[i].data.fd == listen_sock) {
+			if (events[i].data.fd == this->listen_sock) {
 				struct	sockaddr_storage	client_addr;
 				socklen_t	clientaddr_len = sizeof(client_addr);
 
-				conn_sock = accept(listen_sock, reinterpret_cast<sockaddr*>(&client_addr), &clientaddr_len);
+				conn_sock = accept(this->listen_sock, reinterpret_cast<sockaddr*>(&client_addr), &clientaddr_len);
 				if (conn_sock == -1) {
 					if (errno == EAGAIN || errno == EWOULDBLOCK)
 						continue;
@@ -157,8 +160,8 @@ int main(int argc, char *argv[]) {
 					}
 
 				}
-				ev.events = EPOLLIN;
-				ev.data.fd = conn_sock;
+				ev->events = EPOLLIN;
+				ev->data.fd = conn_sock;
 				if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, conn_sock, &ev) == -1) {
 					fprintf(stderr, "epoll_ctl (conn_sock): %s\n", strerror(errno));
 					close(conn_sock);
