@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Client.hpp"
+#include "Config.hpp"
 #include <sys/epoll.h>
 
 class Server {
@@ -9,7 +10,7 @@ class Server {
         int                 listen_sock;
         int                 epoll_fd;
         std::map<int, Client> clients;
-        //config?
+        Config              config;
 
         Server();
         ~Server();

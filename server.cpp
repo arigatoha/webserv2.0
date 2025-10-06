@@ -52,7 +52,7 @@ void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Clie
 			this->disconnect_client(client_fd, epoll_fd, clients);
 			return;
 		}
-		if (client.parser.parse(client_req) == ParseRequest::ParsingComplete) {
+		if (client.parser.parse(client_req, client.req) == ParseRequest::ParsingComplete) {
 			this->handle_parsed_request(clients[client_fd].req, client_fd);
 			std::cout << "Request parsed successfully:\n" << client_req << std::endl;
 			client_req.clear();
@@ -129,7 +129,7 @@ void	Server::init_epoll(epoll_event *ev) {
 
 	ev->events = EPOLLIN;
 	ev->data.fd = this->listen_sock;
-	if (epoll_ctl(this->epoll_fd, EPOLL_CTL_ADD, this->listen_sock, &ev) == -1) {
+	if (epoll_ctl(this->epoll_fd, EPOLL_CTL_ADD, this->listen_sock, ev) == -1) {
 		fprintf(stderr, "epoll_ctl: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
@@ -162,7 +162,7 @@ void	Server::run_event_loop(epoll_event *ev) {
 				}
 				ev->events = EPOLLIN;
 				ev->data.fd = conn_sock;
-				if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, conn_sock, &ev) == -1) {
+				if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, conn_sock, ev) == -1) {
 					fprintf(stderr, "epoll_ctl (conn_sock): %s\n", strerror(errno));
 					close(conn_sock);
 				}
