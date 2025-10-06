@@ -3,14 +3,10 @@
 #include "Client.hpp"
 #include "Config.hpp"
 #include <sys/epoll.h>
+#include "ParseConfig.hpp"
 
 class Server {
     public:
-
-        int                 listen_sock;
-        int                 epoll_fd;
-        std::map<int, Client> clients;
-        Config              config;
 
         Server();
         ~Server();
@@ -21,6 +17,12 @@ class Server {
         void    run();
 
     private:
+
+        int                     listen_sock;
+        int                     epoll_fd;
+        std::map<int, Client>   clients;
+        Config                  config;
+        ParseConfig				ConfigParser;
 
         void    init_epoll(epoll_event *ev);
         void    init_sockets();

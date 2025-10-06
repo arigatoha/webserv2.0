@@ -2,49 +2,39 @@
 
 #include <string>
 #include <map>
-#include "ParseConfig.hpp"
+#include <vector>
 
-struct location {
-    std::string     root;
-    bool            autoindex;
+class Location {
+	public:
+
+		const bool		getDirective(const std::string &key, std::string &out_val) const;
+
+	private:
+
+		std::map<std::string, std::string>	_directives;
 };
 
 class Config {
-    ParseConfig     parser;
-    
-    std::string     server_names  = "default.org www.default.org";
+	public:
 
-	int listen_port		=				8080;
+		Config();
+		~Config();
 
-	std::string index=						"index.html";
+		Config(const Config &other);
+		Config &Config::operator=(const Config &other);
 
-	ssize_t     client_max_body_size	=	100000;
+		const std::vector<Location>		&getLocations() const;
+		bool							getDirective(const std::string &key, std::string &out_val) const;
 
-	std::string     error_page 404				/404.html;
-	// error_page 500 502 503 504	/50x.html;
+		bool							setDirective(const std::string &key, const std::string &value);
 
-    std::string     allowed_methods;
+	private:
 
-	// limit_except GET {
-			// allow	192.168.1.0/32;
-			// deny	all;
-	// }
+		void    	setError_page(const std::string &value);
 
-    std::map<std::string, location> locations;
 
-	// location / {
-		// root	/;
-		// index	index.html;
-	// }
-// 
-	// location /kapouet {
-		// root		/tmp/www;
-		// autoindex	on;
-		// cgi			.php;
-	// }
-// 
-	// location /images {
-		// autoindex	off;
-	// }
+    	std::map<std::string, std::string>	_simple_directives;
+    	std::map<int, std::string>			error_pages;
+		std::vector<Location>				_locations;
 
 };
