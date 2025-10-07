@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <iostream>
 #include <map>
-#include "parser.hpp"
+#include "ParseConfig.hpp"
 #include "Client.hpp"
 #include "server.hpp"
 
@@ -70,10 +70,11 @@ void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Clie
 	}
 }
 
-void Server::run() {
+void Server::run(const std::string &cfg_file) {
 	struct epoll_event		ev;
 
-	this->init_sockets();
+	ConfigParser.parse(cfg_file, this->config);
+	this->init_sockets(this->config.getPort());
 
 	if (listen(this->listen_sock, LISTEN_BACKLOG) == -1) {
 		fprintf(stderr, "listen: %s\n", strerror(errno));
@@ -83,13 +84,13 @@ void Server::run() {
 	this->run_event_loop(&ev);
 }
 
-void	Server::init_sockets() {
+void	Server::init_sockets(const char *port) {
 	struct addrinfo			*result, *rp;
 	struct addrinfo			hints;
 	int						s, optval_int;
 	
 	this->hints_init(&hints);
-	s = getaddrinfo(NULL, "8080", &hints, &result); // for now hardcoded port
+	s = getaddrinfo(NULL, port, &hints, &result);
 	if (s != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
 		exit(EXIT_FAILURE);

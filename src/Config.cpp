@@ -14,15 +14,14 @@ void    Config::setError_page(const std::string &value) {
     this->error_pages[error_code] = tokens.at(ERROR_PAGE);
 }
 
-bool    Config::setDirective(const std::string &key, const std::string &value) {
-    if (key == "error_page") {
-        setError_page(value);
-        return true;
+bool    Config::addLocation(const Location &loc) {
+    std::vector<Location>::iterator    it;
+
+    for (it = _locations.begin(); it != _locations.end(); it++) {
+        if (it->getPath() == loc.getPath()) {
+            return false;
+        }
     }
-    if (_simple_directives.find(key) != _simple_directives.end()) {
-		std::cerr << "Error: Duplicate directive '" << key << "'." << std::endl;
-		return false;
-    }
-	_simple_directives[key] = value;
-	return true;
+    _locations.push_back(loc);
+    return true;
 }

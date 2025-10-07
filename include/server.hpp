@@ -14,7 +14,7 @@ class Server {
         Server(const Server &other);
         Server &operator=(const Server &other);
 
-        void    run();
+        void    run(const std::string &cfg_file);
 
     private:
 
@@ -25,7 +25,7 @@ class Server {
         ParseConfig				ConfigParser;
 
         void    init_epoll(epoll_event *ev);
-        void    init_sockets();
+        void    init_sockets(const char *port);
         void    run_event_loop(epoll_event *ev);
         void    hints_init(struct addrinfo *hints);
         void    handle_new_connection();
