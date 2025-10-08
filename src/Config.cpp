@@ -1,17 +1,37 @@
 #include "Config.hpp"
 #include "StringUtils.hpp"
 #include <iostream>
+#include <cstdlib>
 
 #define ERROR_CODE 0
 #define ERROR_PAGE 1
 
+Config::Config() {
+	_directives["listen"] = "8080";
+	_directives["server_name"] = "localhost";
+}
+
+Config::~Config() {}
+
+Config::Config(const Config &other) : ADirectives(other), error_pages(other.error_pages), _locations(other._locations) {}
+
+Config &Config::operator=(const Config &other) {
+	if (this != &other) {
+		ADirectives::operator=(other);
+		this->error_pages = other.error_pages;
+		this->_locations = other._locations;
+	}
+	return *this;
+}
+
 void    Config::setError_page(const std::string &value) {
-    std::vector<std::string>    tokens;
-    int                         error_code;
+    std::vector<std::string>		tokens;
+    long							error_code_long;
+	char							*end;
 
     tokens = StringUtils::split(value, ' ');
-    error_code = std::atoi(tokens.at(ERROR_CODE).c_str());
-    this->error_pages[error_code] = tokens.at(ERROR_PAGE);
+    error_code_long = strtol(tokens.at(ERROR_CODE).c_str(), &end, 10);
+    this->error_pages[static_cast<int>(error_code_long)] = tokens.at(ERROR_PAGE);
 }
 
 bool    Config::addLocation(const Location &loc) {

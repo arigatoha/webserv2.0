@@ -9,7 +9,7 @@ class Client {
 
 		std::string request_buffer;
 		
-        ssize_t		keep_alive_timer;
+        int		keep_alive_timer;
 
         ParseRequest    parser;
 		HttpRequest     req;

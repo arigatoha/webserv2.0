@@ -20,18 +20,18 @@ class ParseRequest {
 		ParseRequest(const ParseRequest &other);
 		ParseRequest &operator=(const ParseRequest &other);
 
-		ParseResult		parse(std::string &raw_request, HttpRequest &req);
+		ParseResult		parse(const std::string &raw_request, HttpRequest &req);
 
 		bool    		isError();
 		bool    		isRequest();
 
 	private:
-		ParseRequest::ParseResult		parseFirstLine(std::string &_current_line, HttpRequest &req);
+		void							parseFirstLine(std::string &_current_line, HttpRequest &req);
 
 		template <typename T>
 		std::string						trimToken(std::string &src, T token);
 
-		ParseRequest::ParseResult		parseMethod(std::string &first_line, std::string &method);
+		void							parseMethod(std::string &first_line, std::string &method);
 		void							parsePathAndQuery(std::string &line_remainder, std::string &path, std::string &query);
 		void							parseHttpVer(std::string &line_remainder, std::string &http_ver);
 		void							parseHeaders(std::string &line, std::map<std::string, std::string> &headers);

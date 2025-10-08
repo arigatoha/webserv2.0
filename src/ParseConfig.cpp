@@ -1,19 +1,12 @@
 #include "ParseConfig.hpp"
 #include "StringUtils.hpp"
-#include <sys/stat.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <errno.h>
 
 std::string    ParseConfig::safelyExtractRawStr(const std::string &path) {
-	struct stat         st;
 	std::stringstream   buffer;
-
-	if (stat(path.c_str(), &st) == -1) {
-		std::cerr << "stat: " << errno << std::endl; //TODO: check specific error
-		exit(EXIT_FAILURE);
-	}
 
 	std::ifstream file(path);
 
@@ -78,12 +71,12 @@ void	ParseConfig::syntaxCheck(std::vector<std::string> &tokens) {
 	}
 }
 
-void ParseConfig::parse(const std::string &path, Config &config) {
+void ParseConfig::parse(const std::string &cfg_path, Config &config) {
 	std::vector<std::string>			tokens;
 	std::string							key;
 	std::string							value;
 
-	tokens = tokenize(path);
+	tokens = tokenize(cfg_path);
 	syntaxCheck(tokens);
 
 	for (;;) {

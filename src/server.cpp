@@ -1,6 +1,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/epoll.h>
+#include <sys/stat.h>
 #include <cstdlib>
 #include <cstdio>
 #include <netdb.h>
@@ -37,6 +38,34 @@ void	Server::disconnect_client(int client_fd, int epoll_fd, std::map<int, Client
 	clients.erase(client_fd);
 	std::cout << "Client on fd " << client_fd << " disconnected." << std::endl;
 }
+/* hardcoded response TODO*/
+std::string    Server::generate_response(Client &client) {
+	std::string response = "HTTP/1.1 200 OK\r\n"
+						   "Content-Length: 13\r\n"
+						   "Content-Type: text/plain\r\n"
+						   "\r\n"
+						   "Hello, World!";
+	return response;
+}
+
+
+void	Server::send_response(int client_fd, const std::string &response) {
+	ssize_t total_sent;
+	ssize_t to_send;
+
+	total_sent = 0;
+	to_send = response.size();
+	while (total_sent < to_send) {
+		ssize_t sent = send(client_fd, response.c_str() + total_sent, to_send - total_sent, 0);
+		if (sent == -1) {
+			std::cerr << "Error sending response: " << strerror(errno) << std::endl;
+			this->disconnect_client(client_fd, epoll_fd, clients);
+			return;
+		}
+		total_sent += sent;
+	}
+}
+
 
 void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Client> &clients) {
 	ssize_t				bytes_read;
@@ -53,9 +82,10 @@ void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Clie
 			return;
 		}
 		if (client.parser.parse(client_req, client.req) == ParseRequest::ParsingComplete) {
-			this->handle_parsed_request(clients[client_fd].req, client_fd);
+			std::string response = this->handle_parsed_request(clients[client_fd].req, client_fd);
 			std::cout << "Request parsed successfully:\n" << client_req << std::endl;
 			client_req.clear();
+			return;
 		}
 		else {
 			return;
@@ -177,4 +207,27 @@ void	Server::run_event_loop(epoll_event *ev) {
 			}
 		}
 	}
+}
+
+std::string	Server::checkReqPath(const std::string &path) {
+	struct stat         st;
+
+	if (stat(path.c_str(), &st) != 0) {
+		switch(errno) {
+			case ENOENT:
+				return create_404_response;
+			case EACCES:
+				return create_403_response;
+			default:
+				return create_500_response;
+		}
+	}
+	if (S_ISDIR(st.st_mode)) {
+		return create_403_response;
+	}
+	return create_200_response;
+}
+
+std::string Server::handle_parsed_request(const HttpRequest &req, int client_fd) {
+
 }

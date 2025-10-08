@@ -10,12 +10,13 @@ class ParseConfig {
 		~ParseConfig();
 
 		ParseConfig(const ParseConfig &other);
-		ParseConfig &ParseConfig::operator=(const ParseConfig &other);
+		ParseConfig &operator=(const ParseConfig &other);
 
 		void parse(const std::string &path, Config &config);
 
 	private:
 
+		ResponseCode								checkPath(const std::string &path);
 		void										syntaxCheck(std::vector<std::string> &tokens);
 		std::pair<std::string, std::string>			parseLocDirectives(std::vector<std::string> &tokens);
 		Location									parseLocation(std::vector<std::string> &tokens);

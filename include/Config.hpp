@@ -12,7 +12,7 @@ class Config : public ADirectives {
 		~Config();
 
 		Config(const Config &other);
-		Config &Config::operator=(const Config &other);
+		Config &operator=(const Config &other);
 
 		// const std::vector<Location>		&getLocations() const;
 		bool							addLocation(const Location &loc);
