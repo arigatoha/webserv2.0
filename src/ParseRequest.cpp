@@ -69,14 +69,13 @@ void		ParseRequest::parseHeaders(std::string &request, std::map<std::string, std
 		if (delim_pos == request.npos)
 			break;
 		key = request.substr(0, delim_pos);
+		std::transform(key.begin(), key.end(), key.begin(), ::tolower);
 		value = request.substr(delim_pos + 1);
 		key.erase(key.begin(), std::find_if(key.begin(), key.end(), [](unsigned char ch) { return !std::isspace(ch); }));		
 		value.erase(value.begin(), std::find_if(value.begin(), value.end(), [](unsigned char ch) { return !std::isspace(ch); }));		
-		store_headers[key] = value;
+		store_headers[key] = value; // potentially should check for duplicates
 	}
 }
-
-void		ParseRequest::parseBody(std::string &line, std::string &body) {}
 
 
 void		ParseRequest::parseFirstLine(std::string &_current_line, HttpRequest &req) {
@@ -84,6 +83,25 @@ void		ParseRequest::parseFirstLine(std::string &_current_line, HttpRequest &req)
 	parseHttpVer(_current_line, req.http_ver);
 	parsePathAndQuery(_current_line, req.path, req.query_str);
 
+}
+
+ParseRequest::BodyState	ParseRequest::parseBody(size_t eoh_pos, const std::string &raw_request, const std::string &method,
+						const std::map<std::string, std::string> &headers, std::string &body) {
+	size_t	body_size = 0;
+	size_t	headers_size = eoh_pos + 4;
+
+	if (method == "GET" || method == "DELETE" || method == "HEAD") {
+		return BodyNotSent;
+	}
+	if (headers.find("content-length") == headers.end())
+		return BodyError;
+
+	body_size = std::stoul(headers.at("content-length"));
+
+	if (body_size > 0 && raw_request.size() < headers_size + body_size) {
+		return BodyIncomplete;
+	}
+	body = raw_request.substr(body_size + 1); // +1 ?
 }
 
 ParseRequest::ParseResult ParseRequest::parse(const std::string &raw_request, HttpRequest &req) {
@@ -100,9 +118,9 @@ ParseRequest::ParseResult ParseRequest::parse(const std::string &raw_request, Ht
 	parseFirstLine(_current_line, req);
 	
 	parseHeaders(reqNoBody, req.headers);
-	//check content-length header if exists
-
-	parseBody("TODO", req.body);
+	
+	if (parseBody(eoh_pos, raw_request, req.method, req.headers, req.body) == BodyIncomplete)
+		return ParsingIncomplete;
 
 	return ParsingComplete;
 }
