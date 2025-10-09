@@ -5,12 +5,12 @@
 #include <sys/epoll.h>
 #include "ParseConfig.hpp"
 
-enum ResponseCode {
-	create_200_response = 0,
-	create_403_response,
-	create_404_response,
-	create_500_response
-};
+// enum ResponseCode {
+// 	create_200_response = 0,
+// 	create_403_response,
+// 	create_404_response,
+// 	create_500_response
+// };
 
 class Server {
     public:
@@ -41,6 +41,6 @@ class Server {
         void    		disconnect_client(int client_fd, int epoll_fd, std::map<int, Client> &clients);
         std::string		handle_parsed_request(const HttpRequest &req, int client_fd);
         void    		send_response(int client_fd, const std::string &response);
-		ResponseCode	checkReqPath(const std::string &path);
+		std::string     checkReqPath(const std::string &path);
 
 };
