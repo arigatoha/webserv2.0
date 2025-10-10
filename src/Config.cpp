@@ -45,3 +45,11 @@ bool    Config::addLocation(const Location &loc) {
     _locations.push_back(loc);
     return true;
 }
+
+const std::string			Config::getCustomErrorPage(ErrorCode error) const {
+    return this->error_pages.at()
+}
+
+const std::string			Config::getDefaultErrorPage(ErrorCode error) const {
+    return this->error_pages.at()
+}

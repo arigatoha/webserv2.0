@@ -16,7 +16,9 @@ class ParseConfig {
 
 	private:
 
+
 		ResponseCode								checkPath(const std::string &path);
+		void										setErrorPage(std::string &error_code, const std::string &file);
 		void										syntaxCheck(std::vector<std::string> &tokens);
 		std::pair<std::string, std::string>			parseLocDirectives(std::vector<std::string> &tokens);
 		Location									parseLocation(std::vector<std::string> &tokens);

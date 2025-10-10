@@ -5,6 +5,13 @@
 #include <vector>
 #include "Location.hpp"
 
+enum ErrorCode {
+	create_200 = 0,
+	create_403,
+	create_404,
+	create_500
+};
+
 class Config : public ADirectives {
 	public:
 
@@ -17,6 +24,7 @@ class Config : public ADirectives {
 		// const std::vector<Location>		&getLocations() const;
 		bool							addLocation(const Location &loc);
 		const char					*getPort() const { return _directives.at("listen").c_str(); }
+		const std::string			getCustomErrorPage(ErrorCode code) const;
 		
 	private:
 

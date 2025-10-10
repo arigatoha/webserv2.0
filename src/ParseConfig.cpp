@@ -99,6 +99,10 @@ void ParseConfig::parse(const std::string &cfg_path, Config &config) {
 				exit(EXIT_FAILURE);
 			}
 		}
+		else if (key == "error_page") {
+			std::string error_code = tokens.front();
+			setErrorPage(,  file); // TODO
+		}
 		else {
 			while (tokens.front() != ";") {
 				value.append(" " + tokens.front());

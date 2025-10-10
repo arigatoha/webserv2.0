@@ -4,13 +4,7 @@
 #include "Config.hpp"
 #include <sys/epoll.h>
 #include "ParseConfig.hpp"
-
-// enum ResponseCode {
-// 	create_200_response = 0,
-// 	create_403_response,
-// 	create_404_response,
-// 	create_500_response
-// };
+#include "RequestHandler.hpp"
 
 class Server {
     public:
@@ -30,6 +24,7 @@ class Server {
         std::map<int, Client>   clients;
         Config                  config;
         ParseConfig				ConfigParser;
+        RequestHandler          RequsetHandler;
 
         std::string		generate_response(Client &client);
         void    		init_epoll(epoll_event *ev);
