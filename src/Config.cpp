@@ -2,6 +2,7 @@
 #include "StringUtils.hpp"
 #include <iostream>
 #include <cstdlib>
+#include <stdexcept>
 
 #define ERROR_CODE 0
 #define ERROR_PAGE 1
@@ -46,10 +47,16 @@ bool    Config::addLocation(const Location &loc) {
     return true;
 }
 
-const std::string			Config::getCustomErrorPage(ErrorCode error) const {
-    return this->error_pages.at()
+bool			Config::getErrorPage(ErrorCode error, std::string &path_out) const {
+	std::map<int, std::string>::const_iterator it = this->error_pages.find(error);
+
+	if (it != error_pages.end()) {
+		path_out = it->second;
+		return true;
+	}
+	return false;
 }
 
-const std::string			Config::getDefaultErrorPage(ErrorCode error) const {
-    return this->error_pages.at()
+const std::vector<Location>		&Config::getLocations() const {
+	return this->_locations;
 }
