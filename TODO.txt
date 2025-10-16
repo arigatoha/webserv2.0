@@ -1,3 +1,5 @@
+optimize config parser to handle keys with multiple and singular values (not hardcoded)
+
 PARSE ERROR PAGES FROM THE CONFIG!!!
 
 DOING	requestHandler() as well as error pages and responses;
@@ -5,3 +7,4 @@ DOING	requestHandler() as well as error pages and responses;
 fix errors try to complie&run;
 remove exits(Failure) inside server loop, disconnect client instead
 File System Hierarhy Standard for Server
+make tokenize() ignore comments

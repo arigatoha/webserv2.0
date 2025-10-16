@@ -72,12 +72,14 @@ void	ParseConfig::syntaxCheck(std::vector<std::string> &tokens) {
 }
 
 void ParseConfig::parse(const std::string &cfg_path, Config &config) {
-	std::vector<std::string>			tokens;
+	_tokens = tokenize(cfg_path);
+	
+}
+
+void ParseConfig::parseBlock(AConfigBlock &block) {
 	std::string							key;
 	std::string							value;
 
-	tokens = tokenize(cfg_path);
-	syntaxCheck(tokens);
 
 	for (;;) {
 		key = tokens.front();
@@ -111,23 +113,27 @@ void ParseConfig::parse(const std::string &cfg_path, Config &config) {
 			tokens.erase(tokens.begin());
 		}
 		else if (key == "autoindex") {
-			
+
 		}
 		// hardcode every necessary directive ;( TODO
 	}
 }
 
-std::vector<std::string>    ParseConfig::tokenize(const std::string &path) {
-	std::vector<std::string>    tokens;
-	std::string                 token;
+std::vector<Token>    ParseConfig::tokenize(const std::string &path) {
+	std::vector<Token>    		tokens;
+	Token                 		token;
 	std::string                 raw_config;
 	std::stringstream          	tokenStream;
+	size_t						line;
 
 	raw_config = safelyExtractRawStr(path);
 	tokenStream.str(raw_config);
 
-	while (tokenStream >> token) {
+	line = 1;
+	while (tokenStream >> token.line) {
 		tokens.push_back(token);
+		if (token.line == EOL)
+			++line;
 	}
 	return tokens;
 }
