@@ -16,3 +16,14 @@ bool ADirectives::setDirective(const std::string &key, const std::string &value)
 	_directives[key] = value;
 	return true;
 }
+
+bool ADirectives::setDirective(const std::string &key, const std::string &value) {
+	if (_directives.find(key) != _directives.end())
+		return false;
+	_directives[key] = value;
+	return true;
+}
+
+void ADirectives::addIndex(const std::string &value) {
+	_indexes.push_back(value);
+}

@@ -17,7 +17,7 @@ class Config : public ADirectives {
 		const std::vector<Location>		&getLocations() const;
 		bool							addLocation(const Location &loc);
 		const char					*getPort() const { return _directives.at("listen").c_str(); }
-		bool						getErrorPage(ErrorCode code, std::string &errorPage) const;
+		bool						getErrorPage(int code, std::string &errorPage) const;
 	private:
 
 		void    					setError_page(const std::string &value);

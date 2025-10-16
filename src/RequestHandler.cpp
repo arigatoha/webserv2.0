@@ -45,50 +45,24 @@ std::string RequestHandler::create_200_response() {
 	return "200 OK\n";
 }
 
-void	RequestHandler::checkReqPath(const std::string &path, PathInfo &pathInfo) {
-	if (stat(path.c_str(), &pathInfo.st) != 0) {
-		switch(errno) {
-			case ENOENT:
-				pathInfo.error = NOTF_404;
-				pathInfo.type = PATH_NOT_FOUND;
-				return ;
-			case EACCES:
-				pathInfo.error = FORB_403;
-				pathInfo.type = PATH_IS_OTHER;
-				return ;
-			default:
-				pathInfo.error = SERV_500;
-				pathInfo.type = PATH_IS_OTHER;
-				return ;
-		}
-	}
-	if (S_ISDIR(pathInfo.st.st_mode)) {
-		pathInfo.error = FORB_403;
-		pathInfo.type = PATH_IS_DIR;
-		return ;
-	}
-	pathInfo.type = PATH_IS_FILE;
-	pathInfo.error = SUCC_200;
-	return ;
-}
 
 const std::string	RequestHandler::getDefaultError(ErrorCode status_code) {
 	switch(status_code) {
 		case NOTF_404:
-			return "<!DOCTYPE html><html><body><h1>404 Not Found</h1></body></html>";
+		return "<!DOCTYPE html><html><body><h1>404 Not Found</h1></body></html>";
 		case FORB_403:
-			return "<!DOCTYPE html><html><body><h1>403 Forbidden</h1></body></html>";
+		return "<!DOCTYPE html><html><body><h1>403 Forbidden</h1></body></html>";
 		case SERV_500:
-			return "<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1></body></html>";
+		return "<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1></body></html>";
 		default:
-			return "<!DOCTYPE html><html><body><h1>Error</h1></body></html>";
+		return "<!DOCTYPE html><html><body><h1>Error</h1></body></html>";
 	}
 }
 
 const Location	*RequestHandler::findBestLocationMatch(const Config &serv_cfg, const std::string &url) {
 	const Location	*best_match = nullptr;
 	size_t			longest_len = 0;
-
+	
 	const std::vector<Location>	&locations = serv_cfg.getLocations();
 	for (size_t i = 0; i < locations.size(); ++i) {
 		const std::string &loc_path = locations[i].getPath();
@@ -106,50 +80,124 @@ bool RequestHandler::normalizePath(const std::string &input_path, std::string &r
 	char actual_path[PATH_MAX];
 	
 	if (realpath(input_path.c_str(), actual_path) == NULL)
-		return false;
+	return false;
 	resolved_path = actual_path;
 	return true;
 }
 
-std::string	RequestHandler::resolvePath(const std::string &request, const Location *location, const Config &cfg) {
-	std::string result;
-	PathInfo	pathInfo;
-
-	if (normalizePath(location->getPath() + request, result) == false) {
-		pathInfo.error = NOTF_404;
-		return "";
-	}
-	checkReqPath(result, pathInfo);
-	if () {
-		return "";
-	}
-	return result;
-}
-
 std::string RequestHandler::handle(const Config &serv_cfg, HttpRequest &req) {
-
+	resolveRequestToAction()
 }
 
-std::string RequestHandler::handlePath(const Config &serv_cfg, HttpRequest &req) {
-	std::string		errorUrl;
-	std::string		filePath;
-	ErrorCode		error;
+ResolvedAction	RequestHandler::resolveErrorAction(int error_code, const Config &serv_cfg) {
+	std::string		error_url;
 
-	error = SUCC_200;
+	if (serv_cfg.getErrorPage(error_code, error_url)) {
+		const Location *location = findBestLocationMatch(serv_cfg, error_url);
+
+		std::string root = location->getPath();
+		std::string file_path = root + error_url;
+		
+		struct stat st;
+		if (stat(file_path.c_str(), &st) == 0 && S_ISREG(st.st_mode)) {
+			ResolvedAction	action;
+			
+			action.st = st;
+			action.status_code = error_code;
+			action.target_path = file_path;
+			action.type = ACTION_SERVE_FILE;
+			
+			return action;
+		}
+	}
+	ResolvedAction	default_action;
+
+	default_action.status_code = error_code;
+	default_action.type = ACTION_GENERATE_ERROR;
+	
+	return default_action;
+}
+
+ResolvedAction	RequestHandler::resolveRequestToAction(const Config &serv_cfg, HttpRequest &req) {
+	std::string		filename;
+	
 	const Location *location = findBestLocationMatch(serv_cfg, req.getPath());
-	if (location == nullptr)
-		error = NOTF_404;
-	else {
-		filePath = resolvePath(req.getPath(), location, serv_cfg);
+	if (location == NULL) {
+		return resolveErrorAction(404, serv_cfg);
 	}
-	if (error != SUCC_200) {
-		if (serv_cfg.getErrorPage(error, errorUrl)) {
-			req.setPath(errorUrl);
-			handlePath(serv_cfg, req); // potentially infinite recursion TODO
-		}
-		else {
-			return getDefaultError(error);
-		}
+	if (normalizePath(location->getPath() + req.getPath(), filename) == false) {
+		return resolveErrorAction(404, serv_cfg);
 	}
+	return checkReqPath(filename, serv_cfg, location);
+}
 
+ResolvedAction RequestHandler::resolveFileAction(const std::string &path, const Config &cfg, struct stat *st) {
+	ResolvedAction	action;
+
+	action.st = *st;
+	action.status_code = 200;
+	action.type = ACTION_SERVE_FILE;
+	action.target_path = path;
+
+	return action;
+}
+
+bool	RequestHandler::findAccessibleIndex(ResolvedAction &action, const std::string &dir_path,
+											const std::vector<std::string> &indexes) {
+	for (size_t i = 0; i < indexes.size(); ++i) {
+		std::string full_path = dir_path + "/" + indexes[i];
+		
+		struct stat st;
+
+		if (stat(full_path.c_str(), &st) == 0 && S_ISREG(st.st_mode)) {
+			action.st = st;
+			action.status_code = 200;
+			action.target_path = full_path;
+			action.type = ACTION_SERVE_FILE;
+			return true;
+		}
+	}
+	return false;
+}
+ResolvedAction RequestHandler::resolveDirAction(const std::string &dir_path, const Config &cfg,
+												struct stat *st, const Location *location) {
+	ResolvedAction				action;
+	std::vector<std::string>	indexes;
+
+	if (location->getIndexes(indexes) && findAccessibleIndex(action, dir_path, indexes))
+		return action;
+	if (cfg.getIndexes(indexes) && findAccessibleIndex(action, dir_path, indexes))
+		return action;
+	std::string	autoindex;
+	if (location->getDirective("autoindex", autoindex) && autoindex == "on") {
+		action.st = *st;
+		action.status_code = 200;
+		action.target_path = dir_path;
+		action.type = ACTION_AUTOINDEX;
+		return action;
+	}
+	return resolveErrorAction(403, cfg);
+}
+
+
+ResolvedAction	RequestHandler::checkReqPath(const std::string &path, const Config &cfg, const Location *location) {
+	struct stat st;
+
+	if (stat(path.c_str(), &st) != 0) {
+		switch(errno) {
+			case ENOENT:
+				return resolveErrorAction(404, cfg);
+			case EACCES:
+				return resolveErrorAction(403, cfg);
+			default:
+				return resolveErrorAction(500, cfg);
+		}
+	}
+	if (S_ISDIR(st.st_mode)) {
+		return resolveDirAction(path, cfg, &st, location);
+	}
+	else if (S_ISREG(st.st_mode))
+		return resolveFileAction(path, cfg, &st);
+	//Fallback
+	return resolveErrorAction(403, cfg);
 }

@@ -103,17 +103,17 @@ void ParseConfig::parse(const std::string &cfg_path, Config &config) {
 			std::string error_code = tokens.front();
 			setErrorPage(,  file); // TODO
 		}
-		else {
+		else if (key == "index") {
 			while (tokens.front() != ";") {
-				value.append(" " + tokens.front());
+				config.addIndex(value);
 				tokens.erase(tokens.begin());
 			}
 			tokens.erase(tokens.begin());
-			if (config.setDirective(key, value) == false) {
-				std::cerr << "Error: Duplicate directive '" << key << "'." << std::endl;
-				exit(EXIT_FAILURE);
-			}
 		}
+		else if (key == "autoindex") {
+			
+		}
+		// hardcode every necessary directive ;( TODO
 	}
 }
 
