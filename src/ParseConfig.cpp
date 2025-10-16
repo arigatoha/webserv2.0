@@ -84,24 +84,32 @@ void		ParseConfig::parseServers() {
 	// TODO pushback to server cfgs vector
 }
 
+const Token		&ParseConfig::getNextToken() {
+	if (!isAtEnd())
+		throw std::runtime_error("Parsing error: Unexpected end of file.");
+	return _tokens[_token_index++];
+}
+const Token		&ParseConfig::peekNextToken() const {
+	if (!isAtEnd())
+		throw std::runtime_error("Parsing error: Unexpected end of file.");
+	return _tokens[_token_index];
+}
+bool			ParseConfig::isAtEnd() const {
+	return this->_token_index >= _tokens.size();
+
+}
+
 void ParseConfig::parseBlock(AConfigBlock &block) {
 	std::string							key;
 	std::string							value;
 
 
 	for (;;) {
-		key = tokens.front();
-		tokens.erase(tokens.begin());
-		if (key == "}") {
-			if (!tokens.empty()) {
-				std::cerr << "Error: Unexpected tokens after closing '}'." << std::endl;
-				exit(EXIT_FAILURE);
-			}
-			break;
-		}
-		value = tokens.front();
-		tokens.erase(tokens.begin());
-		if (key == "location" && value.find('/') == 0 && tokens.front() == "{") {
+		key = getNextToken().value;
+
+		if (key == "}")
+			return;
+		if (key == "location" && value.find('/') == 0 && peekNextToken().value == "{") {
 			Location loc = parseLocation(tokens);
 
 			if (config.addLocation(loc) == false) {
