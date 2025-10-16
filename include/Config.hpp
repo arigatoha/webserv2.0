@@ -5,7 +5,7 @@
 #include <vector>
 #include "Location.hpp"
 
-class Config : public ADirectives {
+class Config : public AConfigBlock {
 	public:
 
 		Config();

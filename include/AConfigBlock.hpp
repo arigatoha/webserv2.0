@@ -20,4 +20,4 @@ class AConfigBlock {
 		
 		std::map<std::string, std::string>					_directives;
 		std::map<std::string, std::vector<std::string>>		_multiDirectives;
-	};
+};

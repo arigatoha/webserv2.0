@@ -2,9 +2,9 @@
 
 #include <string>
 #include <map>
-#include "ADirectives.hpp"
+#include "AConfigBlock.hpp"
 
-class Location : public ADirectives {
+class Location : public AConfigBlock {
 	public:
 
 		const std::string	&getPath(void) const;

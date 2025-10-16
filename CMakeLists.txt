@@ -11,4 +11,4 @@ add_executable(webserv ${SRCS})
 
 target_include_directories(webserv PRIVATE include)
 
-target_compile_options(webserv PRIVATE -Wall -Wextra -Werror)
+target_compile_options(webserv PRIVATE -Wall -Wextra -Werror -Iinclude)

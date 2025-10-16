@@ -56,11 +56,9 @@ std::pair<std::string, std::string>	ParseConfig::parseLocDirectives(std::vector<
 	return pair;
 }
 
-void	ParseConfig::syntaxCheck(std::vector<std::string> &tokens) {
-	if (tokens.front() == "server") {
-		tokens.erase(tokens.begin());
-		if (tokens.front() == "{") {
-			tokens.erase(tokens.begin());
+void	ParseConfig::syntaxCheck() {
+	if (getNextToken().value == "server") {
+		if (getNextToken().value == "{") {
 		} else {
 			std::cerr << "Error: Expected '{' after 'server' directive." << std::endl;
 			exit(EXIT_FAILURE);
@@ -73,7 +71,17 @@ void	ParseConfig::syntaxCheck(std::vector<std::string> &tokens) {
 
 void ParseConfig::parse(const std::string &cfg_path, Config &config) {
 	_tokens = tokenize(cfg_path);
-	
+	_token_index = 0;
+
+	parseServers();
+}
+
+void		ParseConfig::parseServers() {
+	Config	new_server_cfg;
+
+	syntaxCheck();
+	parseBlock(new_server_cfg);
+	// TODO pushback to server cfgs vector
 }
 
 void ParseConfig::parseBlock(AConfigBlock &block) {
