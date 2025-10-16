@@ -15,7 +15,7 @@ std::string    ParseConfig::safelyExtractRawStr(const std::string &path) {
 	return buffer.str();
 }
 
-Location	ParseConfig::parseLocation(std::vector<std::string> &tokens) {
+Location	ParseConfig::parseLocationBlock() {
 	Location								loc;
 	std::string								path;
 	std::vector<std::string>				loc_tokens;
@@ -110,28 +110,36 @@ void ParseConfig::parseBlock(AConfigBlock &block) {
 		if (key == "}")
 			return;
 		if (key == "location" && value.find('/') == 0 && peekNextToken().value == "{") {
-			Location loc = parseLocation(tokens);
+			Config	*serv_cfg = dynamic_cast<Config*>(&block);
+			if (serv_cfg == NULL) {
+				throw std::runtime_error("config error. location block not in the server directive.");
+			}
+			Location loc = parseLocation();
 
-			if (config.addLocation(loc) == false) {
-				std::cerr << "Error: Duplicate location '" << loc.getPath() << "'." << std::endl;
-				exit(EXIT_FAILURE);
+			if (serv_cfg->addLocation(loc) == false) {
+				throw std::runtime_error("config error. duplicate location.");
 			}
 		}
 		else if (key == "error_page") {
-			std::string error_code = tokens.front();
-			setErrorPage(,  file); // TODO
-		}
-		else if (key == "index") {
-			while (tokens.front() != ";") {
-				config.addIndex(value);
-				tokens.erase(tokens.begin());
+			std::vector<std::string>	error_code;
+			while (peekNextToken().value != ";")
+				error_code.push_back(getNextToken().value);
+			std::string		error_file = error_code.back();
+			error_code.pop_back();
+			while (!error_code.empty()) {
+				setErrorPage(error_code.back(), error_file);
+				error_code.pop_back();
 			}
-			tokens.erase(tokens.begin());
 		}
-		else if (key == "autoindex") {
-
+		else {
+			std::vector<std::string>	value;
+			while (peekNextToken().value != ";")
+				value.push_back(getNextToken().value);
+			if (value.size() != 1)
+				block.setMultiDirective(key, value);
+			else
+				block.setDirective(key, value[0]);
 		}
-		// hardcode every necessary directive ;( TODO
 	}
 }
 
