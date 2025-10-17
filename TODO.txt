@@ -1,4 +1,4 @@
-optimize config parser to handle keys with multiple and singular values (not hardcoded)
+Stream send files to the client.
 
 PARSE ERROR PAGES FROM THE CONFIG!!!
 

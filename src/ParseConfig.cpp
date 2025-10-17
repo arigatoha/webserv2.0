@@ -5,6 +5,8 @@
 #include <sstream>
 #include <errno.h>
 
+#define	EOL	"\r\n"
+
 std::string    ParseConfig::safelyExtractRawStr(const std::string &path) {
 	std::stringstream   buffer;
 
@@ -13,27 +15,6 @@ std::string    ParseConfig::safelyExtractRawStr(const std::string &path) {
 	buffer << file.rdbuf();
 
 	return buffer.str();
-}
-
-Location	ParseConfig::parseLocationBlock() {
-	Location								loc;
-	std::string								path;
-	std::vector<std::string>				loc_tokens;
-	std::pair<std::string, std::string>		keyValue;
-
-	tokens.erase(tokens.begin()); // erase "location"
-	path = tokens.front();
-	tokens.erase(tokens.begin());
-	loc.setPath(path);
-	loc_tokens = StringUtils::extractSubVecOfStr(tokens);
-	tokens.erase(tokens.begin(), tokens.begin() + loc_tokens.size());
-
-	while (!loc_tokens.empty()) {
-		keyValue = parseLocDirectives(loc_tokens);
-		loc.setDirective(keyValue.first, keyValue.second);
-	}
-
-	return loc;
 }
 
 std::pair<std::string, std::string>	ParseConfig::parseLocDirectives(std::vector<std::string> &tokens) {
@@ -59,13 +40,14 @@ std::pair<std::string, std::string>	ParseConfig::parseLocDirectives(std::vector<
 void	ParseConfig::syntaxCheck() {
 	if (getNextToken().value == "server") {
 		if (getNextToken().value == "{") {
+			return;
 		} else {
-			std::cerr << "Error: Expected '{' after 'server' directive." << std::endl;
-			exit(EXIT_FAILURE);
+			std::cerr << "Error: Expected '{' after 'server' directive. On line " << peekNextToken().line << std::endl;
+			throw std::runtime_error("wrong syntax in configuration file.");
 		}
 	} else {
-		std::cerr << "Error: Configuration file must start with 'server' directive." << std::endl;
-		exit(EXIT_FAILURE);
+		std::cerr << "Error: Configuration file must start with 'server' directive. On line " << peekNextToken().line << std::endl;
+		throw std::runtime_error("wrong syntax in configuration file.");
 	}
 }
 
@@ -99,22 +81,56 @@ bool			ParseConfig::isAtEnd() const {
 
 }
 
+Location	ParseConfig::parseLocationBlock() {
+	std::string key;
+	Location	loc;
+	
+	loc.setPath(getNextToken().value);
+	if (getNextToken().value != "{")
+		throw std::runtime_error("wrong syntax in configuration file.");
+	for (;;) {
+		key = getNextToken().value;
+
+		if (key == "}")
+			break;
+		else if (key == "error_page") {
+			std::vector<std::string>	error_code;
+			while (peekNextToken().value != ";")
+				error_code.push_back(getNextToken().value);
+			std::string		error_file = error_code.back();
+			error_code.pop_back();
+			while (!error_code.empty()) {
+				loc.setErrorPage(error_code.back(), error_file);
+				error_code.pop_back();
+			}
+		}
+		else {
+			std::vector<std::string>	value;
+			while (peekNextToken().value != ";")
+				value.push_back(getNextToken().value);
+			if (value.size() != 1)
+				loc.setMultiDirective(key, value);
+			else
+				loc.setDirective(key, value[0]);
+		}
+	}
+	return loc;
+}
+
 void ParseConfig::parseBlock(AConfigBlock &block) {
 	std::string							key;
-	std::string							value;
-
 
 	for (;;) {
 		key = getNextToken().value;
 
 		if (key == "}")
 			return;
-		if (key == "location" && value.find('/') == 0 && peekNextToken().value == "{") {
+		if (key == "location" && peekNextToken().value.find('/') == 0) {
 			Config	*serv_cfg = dynamic_cast<Config*>(&block);
 			if (serv_cfg == NULL) {
 				throw std::runtime_error("config error. location block not in the server directive.");
 			}
-			Location loc = parseLocation();
+			Location loc = parseLocationBlock();
 
 			if (serv_cfg->addLocation(loc) == false) {
 				throw std::runtime_error("config error. duplicate location.");
@@ -127,7 +143,7 @@ void ParseConfig::parseBlock(AConfigBlock &block) {
 			std::string		error_file = error_code.back();
 			error_code.pop_back();
 			while (!error_code.empty()) {
-				setErrorPage(error_code.back(), error_file);
+				block.setErrorPage(error_code.back(), error_file);
 				error_code.pop_back();
 			}
 		}
@@ -154,9 +170,9 @@ std::vector<Token>    ParseConfig::tokenize(const std::string &path) {
 	tokenStream.str(raw_config);
 
 	line = 1;
-	while (tokenStream >> token.line) {
+	while (tokenStream >> token.value) {
 		tokens.push_back(token);
-		if (token.line == EOL)
+		if (token.value == EOL)
 			++line;
 	}
 	return tokens;

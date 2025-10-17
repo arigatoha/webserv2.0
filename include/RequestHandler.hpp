@@ -22,7 +22,7 @@ class RequestHandler {
 		const Location		*findBestLocationMatch(const Config &serv_cfg, const std::string &url);
 		bool				normalizePath(const std::string &input_path, std::string &resolved_path);
 		std::string			handlePath(const Config &serv_cfg, HttpRequest &req);
-		ResolvedAction		resolveRequestToAction(const Config &serv_cfg, HttpRequest &req);
+		ResolvedAction		resolveRequestToAction(const Config &serv_cfg, const std::string &req_path);
 		ResolvedAction		checkReqPath(const std::string &path, const Config &cfg, const Location *location);
 		ResolvedAction		resolveErrorAction(int error_code, const Config &serv_cfg);
 		ResolvedAction		resolveFileAction(const std::string &path, const Config &cfg, struct stat *st);
@@ -30,10 +30,15 @@ class RequestHandler {
 								const Location *location);
 		bool				findAccessibleIndex(ResolvedAction &action, const std::string &dir_path,
 								const std::vector<std::string> &indexes);
+		const std::string	getDefaultError(int status_code);
 
 
-		std::string		create_404_response(std::string &errorText);
-		std::string		create_403_response(std::string &errorText);
-		std::string		create_500_response(std::string &errorText);
-		std::string		create_200_response();
+		std::string			genServeFileAction(const ResolvedAction &action);
+		std::string			genAutoindexAction(const ResolvedAction &action);
+
+		const std::string		generic_error_response();
+		const std::string		create_404_response();
+		const std::string		create_403_response();
+		const std::string		create_500_response();
+		const std::string		create_200_response();
 };

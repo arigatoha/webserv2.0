@@ -35,7 +35,7 @@ class ParseConfig {
 		void										setErrorPage(std::string &error_code, const std::string &file);
 		void										syntaxCheck();
 		std::pair<std::string, std::string>			parseLocDirectives(std::vector<std::string> &tokens);
-		Location									parseLocation(std::vector<std::string> &tokens);
+		Location									parseLocationBlock();
 		std::vector<Token>							tokenize(const std::string &path);
 		std::string									safelyExtractRawStr(const std::string &path);
 };

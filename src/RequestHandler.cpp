@@ -4,6 +4,8 @@
 #include <ctime>
 #include <cstdlib>
 #include <limits.h>
+#include <sstream>
+#include <dirent.h>
 
 /*ERROR TEMPLATE*/
 // append static http version and error msg
@@ -25,37 +27,84 @@ std::string		RequestHandler::getHttpDate() {
 	return std::string(buffer);
 }
 
-std::string	RequestHandler::create_404_response(std::string &errorText) {
-	std::string		response;
+const std::string	RequestHandler::create_404_response() {
+	const std::string		body = "<!DOCTYPE html><html><body><h1>404 Not Found</h1></body></html>";
 
-	response = "HTTP/1.1 404 not Found\r\n";
-	response += getHttpDate() + "\r\n";
-	response += "Webserv/ver 1.0\r\n"
+	std::stringstream		response;
+
+	response << "HTTP/1.1 404 not Found\r\n";
+	response << "Date: " << getHttpDate() << "\r\n";
+	response << "Server: " << "Webserv/ver 1.0\r\n";
+	response << "Content-Type: text/html\r\n";
+	response << "Content-Length: " << body.length() << "\r\n";
+	response << "Connection: close\r\n";
+	response << "\r\n";
+	response << body;
+
+	return response.str();
 }
 
-std::string	RequestHandler::create_403_response(std::string &errorText) {
-	return "403 Forbidden\n";
+const std::string	RequestHandler::create_403_response() {
+	const std::string		body = "<!DOCTYPE html><html><body><h1>403 Forbidden</h1></body></html>";
+	
+	std::stringstream		response;
+
+	response << "HTTP/1.1 403 Access Forbidden\r\n";
+	response << "Date: " << getHttpDate() << "\r\n";
+	response << "Server: " << "Webserv/ver 1.0\r\n";
+	response << "Content-Type: text/html\r\n";
+	response << "Content-Length: " << body.length() << "\r\n";
+	response << "Connection: close\r\n";
+	response << "\r\n";
+	response << body;
+
+	return response.str();
 }
 
-std::string	RequestHandler::create_500_response(std::string &errorText) {
-	return "500 Internal Server Error\n";
+const std::string	RequestHandler::create_500_response() {
+	const std::string		body = "<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1></body></html>";
+	
+	std::stringstream		response;
+
+	response << "HTTP/1.1 500 Internal Server Error\r\n";
+	response << "Date: " << getHttpDate() << "\r\n";
+	response << "Server: " << "Webserv/ver 1.0\r\n";
+	response << "Content-Type: text/html\r\n";
+	response << "Content-Length: " << body.length() << "\r\n";
+	response << "Connection: close\r\n";
+	response << "\r\n";
+	response << body;
+
+	return response.str();
 }
 
-std::string RequestHandler::create_200_response() {
-	return "200 OK\n";
+const std::string RequestHandler::generic_error_response() {
+	const std::string body = "<!DOCTYPE html><html><body><h1>Error</h1></body></html>";
+		
+	std::stringstream		response;
+
+	response << "HTTP/1.1 Error\r\n";
+	response << "Date: " << getHttpDate() << "\r\n";
+	response << "Server: " << "Webserv/ver 1.0\r\n";
+	response << "Content-Type: text/html\r\n";
+	response << "Content-Length: " << body.length() << "\r\n";
+	response << "Connection: close\r\n";
+	response << "\r\n";
+	response << body;
+
+	return response.str();
 }
 
-
-const std::string	RequestHandler::getDefaultError(ErrorCode status_code) {
+const std::string	RequestHandler::getDefaultError(int status_code) {
 	switch(status_code) {
-		case NOTF_404:
-		return "<!DOCTYPE html><html><body><h1>404 Not Found</h1></body></html>";
-		case FORB_403:
-		return "<!DOCTYPE html><html><body><h1>403 Forbidden</h1></body></html>";
-		case SERV_500:
-		return "<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1></body></html>";
+		case 404:
+			return create_404_response();
+		case 403:
+			return create_403_response();
+		case 500:
+			return create_500_response();
 		default:
-		return "<!DOCTYPE html><html><body><h1>Error</h1></body></html>";
+			return generic_error_response();
 	}
 }
 
@@ -85,8 +134,44 @@ bool RequestHandler::normalizePath(const std::string &input_path, std::string &r
 	return true;
 }
 
+const std::string RequestHandler::create_200_response() {
+	const std::string body = "<!DOCTYPE html><html><body><h1>Error</h1></body></html>";
+		
+	std::stringstream		response;
+
+	response << "HTTP/1.1 200 Success\r\n";
+	response << "Date: " << getHttpDate() << "\r\n";
+	response << "Server: " << "Webserv/ver 1.0\r\n";
+	response << "Content-Type: text/html\r\n";
+	response << "Content-Length: " << body.length() << "\r\n";
+	response << "Connection: keep-alive\r\n";
+	response << "\r\n";
+	response << body;
+
+	return response.str();
+}
+
+std::string			RequestHandler::genServeFileAction(const ResolvedAction &action) {
+	
+}
+
+std::string			RequestHandler::genAutoindexAction(const ResolvedAction &action) {}
+
+
 std::string RequestHandler::handle(const Config &serv_cfg, HttpRequest &req) {
-	resolveRequestToAction()
+	ResolvedAction	action;
+
+	action = resolveRequestToAction(serv_cfg, req.getPath());
+	switch (action.type) {
+		case ACTION_SERVE_FILE:
+			return genServeFileAction(action);
+		case ACTION_GENERATE_ERROR:
+			return getDefaultError(action.status_code);
+		case ACTION_AUTOINDEX:
+			return genAutoindexAction(action);
+		default:
+
+	}
 }
 
 ResolvedAction	RequestHandler::resolveErrorAction(int error_code, const Config &serv_cfg) {
@@ -118,14 +203,14 @@ ResolvedAction	RequestHandler::resolveErrorAction(int error_code, const Config &
 	return default_action;
 }
 
-ResolvedAction	RequestHandler::resolveRequestToAction(const Config &serv_cfg, HttpRequest &req) {
+ResolvedAction	RequestHandler::resolveRequestToAction(const Config &serv_cfg, const std::string &req_path) {
 	std::string		filename;
 	
-	const Location *location = findBestLocationMatch(serv_cfg, req.getPath());
+	const Location *location = findBestLocationMatch(serv_cfg, req_path);
 	if (location == NULL) {
 		return resolveErrorAction(404, serv_cfg);
 	}
-	if (normalizePath(location->getPath() + req.getPath(), filename) == false) {
+	if (normalizePath(location->getPath() + req_path, filename) == false) {
 		return resolveErrorAction(404, serv_cfg);
 	}
 	return checkReqPath(filename, serv_cfg, location);
@@ -169,7 +254,7 @@ ResolvedAction RequestHandler::resolveDirAction(const std::string &dir_path, con
 	if (cfg.getIndexes(indexes) && findAccessibleIndex(action, dir_path, indexes))
 		return action;
 	std::string	autoindex;
-	if (location->getDirective("autoindex", autoindex) && autoindex == "on") {
+	if (location->isAutoindexOn()) {
 		action.st = *st;
 		action.status_code = 200;
 		action.target_path = dir_path;
