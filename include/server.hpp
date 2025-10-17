@@ -35,7 +35,6 @@ class Server {
         void    		handle_client_event(int client_fd, int epoll_fd, std::map<int, Client> &clients);
         void    		disconnect_client(int client_fd, int epoll_fd, std::map<int, Client> &clients);
         std::string		handle_parsed_request(const HttpRequest &req, int client_fd);
-        void    		send_response(int client_fd, const std::string &response);
 		std::string     checkReqPath(const std::string &path);
 
 };

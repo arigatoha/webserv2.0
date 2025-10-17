@@ -13,11 +13,10 @@ class RequestHandler {
 		RequestHandler(const RequestHandler &other);
 		RequestHandler &operator=(const RequestHandler &other);
 		
-		std::string		handle(const Config &serv_cfg, HttpRequest &req);
+		void		handle(const Config &serv_cfg, const HttpRequest &req, int client_fd);
 		
 	private:
 
-		std::string			handle_parsed_request(const HttpRequest &req, int client_fd);
 		std::string			getHttpDate();
 		const Location		*findBestLocationMatch(const Config &serv_cfg, const std::string &url);
 		bool				normalizePath(const std::string &input_path, std::string &resolved_path);
@@ -30,15 +29,20 @@ class RequestHandler {
 								const Location *location);
 		bool				findAccessibleIndex(ResolvedAction &action, const std::string &dir_path,
 								const std::vector<std::string> &indexes);
+								void				send_headers(int client_fd, const std::string &response);
+								void				streamFileBody(int client_fd, const std::string &file_path);
+								
 		const std::string	getDefaultError(int status_code);
-
-
-		std::string			genServeFileAction(const ResolvedAction &action);
 		std::string			genAutoindexAction(const ResolvedAction &action);
+
+		void			sendDefaultError(int status_code, int client_fd);
+		void			sendFile(const ResolvedAction &action, int client_fd);
+		void			sendDir(const ResolvedAction &action, int client_fd);
 
 		const std::string		generic_error_response();
 		const std::string		create_404_response();
 		const std::string		create_403_response();
 		const std::string		create_500_response();
-		const std::string		create_200_response();
+		const std::string		createSuccResponseNoBody(long int contentLen);
+
 };

@@ -5,7 +5,11 @@
 #include <cstdlib>
 #include <limits.h>
 #include <sstream>
+#include <fstream>
 #include <dirent.h>
+#include <sys/socket.h>
+
+#define SBUF 4096
 
 /*ERROR TEMPLATE*/
 // append static http version and error msg
@@ -129,46 +133,93 @@ bool RequestHandler::normalizePath(const std::string &input_path, std::string &r
 	char actual_path[PATH_MAX];
 	
 	if (realpath(input_path.c_str(), actual_path) == NULL)
-	return false;
+		return false;
 	resolved_path = actual_path;
 	return true;
 }
 
-const std::string RequestHandler::create_200_response() {
-	const std::string body = "<!DOCTYPE html><html><body><h1>Error</h1></body></html>";
-		
+const std::string RequestHandler::createSuccResponseNoBody(long int contentLen) {
 	std::stringstream		response;
 
 	response << "HTTP/1.1 200 Success\r\n";
 	response << "Date: " << getHttpDate() << "\r\n";
 	response << "Server: " << "Webserv/ver 1.0\r\n";
 	response << "Content-Type: text/html\r\n";
-	response << "Content-Length: " << body.length() << "\r\n";
+	response << "Content-Length: " << contentLen << "\r\n";
 	response << "Connection: keep-alive\r\n";
 	response << "\r\n";
-	response << body;
 
 	return response.str();
 }
 
-std::string			RequestHandler::genServeFileAction(const ResolvedAction &action) {
-	
+void	RequestHandler::send_headers(int client_fd, const std::string &response) {
+	ssize_t total_sent;
+	ssize_t to_send;
+
+	total_sent = 0;
+	to_send = response.size();
+	while (total_sent < to_send) {
+		ssize_t sent = send(client_fd, response.c_str() + total_sent, to_send - total_sent, 0);
+		if (sent == -1) {
+			throw std::runtime_error("Error sending response");
+		}
+		total_sent += sent;
+	}
 }
+
+void	RequestHandler::streamFileBody(int client_fd, const std::string &file_path) {
+	std::ifstream	file(file_path, std::ios::binary);
+
+	char	buf[SBUF];
+	while (file.good()) {
+		file.read(buf, sizeof(buf));
+
+		std::streamsize	bytes_to_send = file.gcount();
+		if (bytes_to_send > 0) {
+			ssize_t sent = send(client_fd, buf, bytes_to_send, 0);
+			if (sent == -1) {
+				throw std::runtime_error("Error sending response file");
+			}
+		}
+	}
+}
+
 
 std::string			RequestHandler::genAutoindexAction(const ResolvedAction &action) {}
 
+void			RequestHandler::sendDefaultError(int status_code, int client_fd) {
+	const std::string error_str = getDefaultError(status_code);
+	send_headers(client_fd, error_str);
+}
 
-std::string RequestHandler::handle(const Config &serv_cfg, HttpRequest &req) {
+void			RequestHandler::sendFile(const ResolvedAction &action, int client_fd) {
+	long int file_size = action.st.st_size;
+	
+	const std::string response = createSuccResponseNoBody(file_size);
+	send_headers(client_fd, response);
+	streamFileBody(client_fd, action.target_path);
+}
+
+void			RequestHandler::sendDir(const ResolvedAction &action, int client_fd) {
+	DIR *directory = opendir(action.target_path.c_str());
+	if (!directory)
+		throw std::runtime_error("could not open dir");
+	while (1) {
+		dirent *dir_entry = readdir(directory);
+	}
+}
+
+void RequestHandler::handle(const Config &serv_cfg, const HttpRequest &req, int client_fd) {
 	ResolvedAction	action;
 
 	action = resolveRequestToAction(serv_cfg, req.getPath());
 	switch (action.type) {
 		case ACTION_SERVE_FILE:
-			return genServeFileAction(action);
+			return sendFile(action, client_fd);
 		case ACTION_GENERATE_ERROR:
-			return getDefaultError(action.status_code);
+			return sendDefaultError(action.status_code, client_fd);
 		case ACTION_AUTOINDEX:
-			return genAutoindexAction(action);
+			return sendDir(action, client_fd);
 		default:
 
 	}

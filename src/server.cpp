@@ -38,34 +38,6 @@ void	Server::disconnect_client(int client_fd, int epoll_fd, std::map<int, Client
 	clients.erase(client_fd);
 	std::cout << "Client on fd " << client_fd << " disconnected." << std::endl;
 }
-/* hardcoded response TODO*/
-std::string    Server::generate_response(Client &client) {
-	std::string response = "HTTP/1.1 200 OK\r\n"
-						   "Content-Length: 13\r\n"
-						   "Content-Type: text/plain\r\n"
-						   "\r\n"
-						   "Hello, World!";
-	return response;
-}
-
-
-void	Server::send_response(int client_fd, const std::string &response) {
-	ssize_t total_sent;
-	ssize_t to_send;
-
-	total_sent = 0;
-	to_send = response.size();
-	while (total_sent < to_send) {
-		ssize_t sent = send(client_fd, response.c_str() + total_sent, to_send - total_sent, 0);
-		if (sent == -1) {
-			std::cerr << "Error sending response: " << strerror(errno) << std::endl;
-			this->disconnect_client(client_fd, epoll_fd, clients);
-			return;
-		}
-		total_sent += sent;
-	}
-}
-
 
 void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Client> &clients) {
 	ssize_t				bytes_read;
@@ -77,7 +49,7 @@ void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Clie
 	if (bytes_read > 0) {
 		client_req.append(temp_buf);
 		if (client_req.size() > MAX_REQUEST_SIZE) {
-			send(client_fd, "HTTP/1.1 413 Payload Too Large\r\n\r\n", 32, 0);
+			send(client_fd, "HTTP/1.1 413 Payload Too Large\r\n\r\n", 32, 0); // TODO
 			this->disconnect_client(client_fd, epoll_fd, clients);
 			return;
 		}
