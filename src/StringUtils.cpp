@@ -33,3 +33,9 @@ std::vector<std::string>    extractSubVecOfStr(const std::vector<std::string> &s
 	}
 	return sub_vec;
 }
+
+std::string		myItoa(int input) {
+    std::stringstream res;
+    res << input;
+    return res.str();
+}

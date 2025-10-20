@@ -18,7 +18,7 @@ std::string		ParseRequest::trimToken(std::string &src, T token) {
 	if (ele_pos != src.npos) {
 		res = src.substr(0, ele_pos);
 		// if (eraseFound)
-		src.erase(src.begin(), ele_pos);
+		src.erase(0, ele_pos);
 
 		return	res;
 	}
@@ -26,36 +26,36 @@ std::string		ParseRequest::trimToken(std::string &src, T token) {
 }
 
 
-void		ParseRequest::parseMethod(std::string &first_line, std::string &method) {
+void		ParseRequest::parseMethod(std::string &first_line, HttpRequest &req) {
 	std::string		_substring;
 
 	_substring = trimToken(first_line, SPACE);
 
-	method = _substring; // TODO: maybe tolower()
+	req.setMethod(_substring); // TODO: maybe tolower()
 }
 
 
-void		ParseRequest::parsePathAndQuery(std::string &line_remainder, std::string &path, std::string &query_str) {
+void		ParseRequest::parsePathAndQuery(std::string &line_remainder, HttpRequest &req) {
 	std::string		_substring;
 
 	_substring = trimToken(line_remainder, '?');
 	if (_substring != line_remainder) {
-		path = _substring;
-		query_str = trimToken(line_remainder, SPACE);
+		req.setPath(_substring);
+		req.setQuery(trimToken(line_remainder, SPACE));
 	}
 	else {
-		path = trimToken(line_remainder, SPACE);
-		query_str = "";
+		req.setPath(trimToken(line_remainder, SPACE));
+		req.setQuery("");
 	}
 }
 
 
-void		ParseRequest::parseHttpVer(std::string &line_remainder, std::string &http_ver) {
-	http_ver = trimToken(line_remainder, EOL);
+void		ParseRequest::parseHttpVer(std::string &line_remainder, HttpRequest &req) {
+	req.setVersion(trimToken(line_remainder, EOL));
 }
 
 
-void		ParseRequest::parseHeaders(std::string &request, std::map<std::string, std::string> &store_headers) {
+void		ParseRequest::parseHeaders(std::string &request, HttpRequest &req) {
 	std::string		header_line;
 	std::string		key;
 	std::string		value;
@@ -71,22 +71,31 @@ void		ParseRequest::parseHeaders(std::string &request, std::map<std::string, std
 		key = request.substr(0, delim_pos);
 		std::transform(key.begin(), key.end(), key.begin(), ::tolower);
 		value = request.substr(delim_pos + 1);
-		key.erase(key.begin(), std::find_if(key.begin(), key.end(), [](unsigned char ch) { return !std::isspace(ch); }));		
-		value.erase(value.begin(), std::find_if(value.begin(), value.end(), [](unsigned char ch) { return !std::isspace(ch); }));		
+		trimLeftWhitespace(key);
+		trimLeftWhitespace(value);
 		store_headers[key] = value; // potentially should check for duplicates
 	}
 }
 
+void		ParseRequest::trimLeftWhitespace(std::string &to_trim) {
+	const std::string WHITESPACE = " \r\t\n\f\v";
+	size_t start = to_trim.find_first_not_of(WHITESPACE);
+
+	if (start == to_trim.npos)
+		to_trim.clear();
+	else {
+		to_trim.erase(0, start);
+	}
+}
 
 void		ParseRequest::parseFirstLine(std::string &_current_line, HttpRequest &req) {
-	parseMethod(_current_line, req.method);
-	parseHttpVer(_current_line, req.http_ver);
-	parsePathAndQuery(_current_line, req.path, req.query_str);
+	parseMethod(_current_line, req);
+	parseHttpVer(_current_line, req);
+	parsePathAndQuery(_current_line, req);
 
 }
 
-ParseRequest::BodyState	ParseRequest::parseBody(size_t eoh_pos, const std::string &raw_request, const std::string &method,
-						const std::map<std::string, std::string> &headers, std::string &body) {
+ParseRequest::BodyState	ParseRequest::parseBody(size_t eoh_pos, const std::string &raw_request, HttpRequest &req) {
 	size_t	body_size = 0;
 	size_t	headers_size = eoh_pos + 4;
 
@@ -117,9 +126,9 @@ ParseRequest::ParseResult ParseRequest::parse(const std::string &raw_request, Ht
 	_current_line = trimToken(reqNoBody, EOL);
 	parseFirstLine(_current_line, req);
 	
-	parseHeaders(reqNoBody, req.headers);
+	parseHeaders(reqNoBody, req);
 	
-	if (parseBody(eoh_pos, raw_request, req.method, req.headers, req.body) == BodyIncomplete)
+	if (parseBody(eoh_pos, raw_request, req) == BodyIncomplete)
 		return ParsingIncomplete;
 
 	return ParsingComplete;

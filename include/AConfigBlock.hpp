@@ -28,5 +28,5 @@ class AConfigBlock {
 		
 		std::map<std::string, std::string>					_error_pages;
 		std::map<std::string, std::string>					_directives;
-		std::map<std::string, std::vector<std::string>>		_multiDirectives;
+		std::map<std::string, std::vector<std::string> >		_multiDirectives;
 };

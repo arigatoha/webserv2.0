@@ -1,4 +1,5 @@
 #include "AConfigBlock.hpp"
+#include "StringUtils.hpp"
 
 bool AConfigBlock::getDirective(const std::string &key, std::string &out_val) const {
 	std::map<std::string, std::string>::const_iterator	it;
@@ -17,7 +18,7 @@ void AConfigBlock::setDirective(const std::string &key, const std::string &value
 }
 
 bool AConfigBlock::getMultiDirective(const std::string &key, std::vector<std::string> &out_val) const {
-	std::map<std::string, std::vector<std::string>>::const_iterator	it;
+	std::map<std::string, std::vector<std::string> >::const_iterator	it;
 
 	it = _multiDirectives.find(key);
 	if (it == _multiDirectives.end())
@@ -52,7 +53,7 @@ void		AConfigBlock::setErrorPage(const std::string &error_code, const std::strin
 bool		AConfigBlock::getErrorPage(int error_code, std::string &out_val) const {
 	std::map<std::string, std::string>::const_iterator	it;
 
-	std::string error_code_str = std::to_string(error_code);
+	std::string error_code_str = StringUtils::myItoa(error_code);
 	it = _error_pages.find(error_code_str);
 	if (it == _error_pages.end())
 		return false;

@@ -1,3 +1,5 @@
+Trying to compile, should improve parseBody(), parseHeaders an parse() in the ParseRequest, potentially change to ParseConfig tokenization.
+
 Stream send files to the client.
 
 PARSE ERROR PAGES FROM THE CONFIG!!!

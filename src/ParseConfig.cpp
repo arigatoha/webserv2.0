@@ -10,7 +10,7 @@
 std::string    ParseConfig::safelyExtractRawStr(const std::string &path) {
 	std::stringstream   buffer;
 
-	std::ifstream file(path);
+	std::ifstream file(path.c_str(), std::ios::binary);
 
 	buffer << file.rdbuf();
 
@@ -55,16 +55,16 @@ void ParseConfig::parse(const std::string &cfg_path, Config &config) {
 	_tokens = tokenize(cfg_path);
 	_token_index = 0;
 
-	parseServers();
-}
-
-void		ParseConfig::parseServers() {
-	Config	new_server_cfg;
-
 	syntaxCheck();
-	parseBlock(new_server_cfg);
-	// TODO pushback to server cfgs vector
+	parseBlock(config);
 }
+
+// void		ParseConfig::parseServers() {
+// 	Config	new_server_cfg;
+
+
+// 	// TODO pushback to server cfgs vector
+// }
 
 const Token		&ParseConfig::getNextToken() {
 	if (!isAtEnd())
