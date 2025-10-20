@@ -29,20 +29,22 @@ class RequestHandler {
 								const Location *location);
 		bool				findAccessibleIndex(ResolvedAction &action, const std::string &dir_path,
 								const std::vector<std::string> &indexes);
-								void				send_headers(int client_fd, const std::string &response);
-								void				streamFileBody(int client_fd, const std::string &file_path);
+		void				sendString(int client_fd, const std::string &response);
+		void				streamFileBody(int client_fd, const std::string &file_path);
 								
 		const std::string	getDefaultError(int status_code);
 		std::string			genAutoindexAction(const ResolvedAction &action);
+		std::string			createDirListHtml(const std::string &physical_path,
+									const std::string &logic_path);
 
 		void			sendDefaultError(int status_code, int client_fd);
 		void			sendFile(const ResolvedAction &action, int client_fd);
-		void			sendDir(const ResolvedAction &action, int client_fd);
+		void			sendDir(const std::string &phys_path, int client_fd, const std::string &logic_path);
 
 		const std::string		generic_error_response();
 		const std::string		create_404_response();
 		const std::string		create_403_response();
 		const std::string		create_500_response();
-		const std::string		createSuccResponseNoBody(long int contentLen);
+		const std::string		createSuccResponseHeaders(long int contentLen);
 
 };

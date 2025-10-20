@@ -3,7 +3,7 @@
 #include <sys/stat.h>
 #include <ctime>
 #include <cstdlib>
-#include <limits.h>
+// #include <limits.h>
 #include <sstream>
 #include <fstream>
 #include <dirent.h>
@@ -138,7 +138,7 @@ bool RequestHandler::normalizePath(const std::string &input_path, std::string &r
 	return true;
 }
 
-const std::string RequestHandler::createSuccResponseNoBody(long int contentLen) {
+const std::string RequestHandler::createSuccResponseHeaders(long int contentLen) {
 	std::stringstream		response;
 
 	response << "HTTP/1.1 200 Success\r\n";
@@ -152,7 +152,7 @@ const std::string RequestHandler::createSuccResponseNoBody(long int contentLen) 
 	return response.str();
 }
 
-void	RequestHandler::send_headers(int client_fd, const std::string &response) {
+void	RequestHandler::sendString(int client_fd, const std::string &response) {
 	ssize_t total_sent;
 	ssize_t to_send;
 
@@ -189,24 +189,60 @@ std::string			RequestHandler::genAutoindexAction(const ResolvedAction &action) {
 
 void			RequestHandler::sendDefaultError(int status_code, int client_fd) {
 	const std::string error_str = getDefaultError(status_code);
-	send_headers(client_fd, error_str);
+	sendString(client_fd, error_str);
 }
 
 void			RequestHandler::sendFile(const ResolvedAction &action, int client_fd) {
 	long int file_size = action.st.st_size;
 	
-	const std::string response = createSuccResponseNoBody(file_size);
-	send_headers(client_fd, response);
+	const std::string response = createSuccResponseHeaders(file_size);
+	sendString(client_fd, response);
 	streamFileBody(client_fd, action.target_path);
 }
 
-void			RequestHandler::sendDir(const ResolvedAction &action, int client_fd) {
-	DIR *directory = opendir(action.target_path.c_str());
+std::string		RequestHandler::createDirListHtml(const std::string &physical_path, const std::string &logic_path) {
+	std::string html_body = "<!DOCTYPE html>\r\n"
+						"<html lang=en>\r\n"
+						"<head>\r\n"
+						"	<meta charset=\"UTF-8\">\r\n"
+						"	<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
+						"	<title>Index of " + logic_path + "</title>\r\n"
+						"</head>\r\n"
+						"<body>\r\n"
+						"	<h1>Index of " + logic_path + "</h1>\r\n"
+						"	<hr>\r\n"
+						"	<ul>\r\n";
+	
+	DIR *directory = opendir(physical_path.c_str());
 	if (!directory)
 		throw std::runtime_error("could not open dir");
-	while (1) {
-		dirent *dir_entry = readdir(directory);
+
+	for (dirent *entry = readdir(directory); entry != NULL; entry = readdir(directory)) {
+		std::string name = entry->d_name;
+		if (name == ".." || name == ".")
+			continue;
+		std::string href_link = logic_path;
+		if (href_link.back() != '/')
+			href_link += "/";
+		struct stat st;
+		if (stat((physical_path + "/" + href_link).c_str(), &st) == 0 &&
+				S_ISDIR(st.st_mode))
+		{
+			name += "/";
+		}
+		html_body += "		<li><a href=\"" + href_link + "\">" + name + "</a></li>\r\n";
 	}
+	html_body += "	</ul>\r\n"
+				 "</body>\r\n"
+				 "</html>\r\n";
+	closedir(directory);
+}
+
+void			RequestHandler::sendDir(const std::string &phys_path, int client_fd, const std::string &logic_path) {
+	const std::string html_body = createDirListHtml(phys_path, logic_path);
+
+	sendString(client_fd, createSuccResponseHeaders(html_body.length()));
+	sendString(client_fd, html_body);
 }
 
 void RequestHandler::handle(const Config &serv_cfg, const HttpRequest &req, int client_fd) {
@@ -219,9 +255,9 @@ void RequestHandler::handle(const Config &serv_cfg, const HttpRequest &req, int 
 		case ACTION_GENERATE_ERROR:
 			return sendDefaultError(action.status_code, client_fd);
 		case ACTION_AUTOINDEX:
-			return sendDir(action, client_fd);
+			return sendDir(action.target_path, client_fd, req.getPath());
 		default:
-
+			return sendDefaultError(500, client_fd);
 	}
 }
 
@@ -255,16 +291,16 @@ ResolvedAction	RequestHandler::resolveErrorAction(int error_code, const Config &
 }
 
 ResolvedAction	RequestHandler::resolveRequestToAction(const Config &serv_cfg, const std::string &req_path) {
-	std::string		filename;
+	std::string		phys_path;
 	
 	const Location *location = findBestLocationMatch(serv_cfg, req_path);
 	if (location == NULL) {
 		return resolveErrorAction(404, serv_cfg);
 	}
-	if (normalizePath(location->getPath() + req_path, filename) == false) {
+	if (normalizePath(location->getPath() + req_path, phys_path) == false) {
 		return resolveErrorAction(404, serv_cfg);
 	}
-	return checkReqPath(filename, serv_cfg, location);
+	return checkReqPath(phys_path, serv_cfg, location);
 }
 
 ResolvedAction RequestHandler::resolveFileAction(const std::string &path, const Config &cfg, struct stat *st) {
@@ -295,6 +331,7 @@ bool	RequestHandler::findAccessibleIndex(ResolvedAction &action, const std::stri
 	}
 	return false;
 }
+
 ResolvedAction RequestHandler::resolveDirAction(const std::string &dir_path, const Config &cfg,
 												struct stat *st, const Location *location) {
 	ResolvedAction				action;

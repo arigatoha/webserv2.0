@@ -54,7 +54,7 @@ void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Clie
 			return;
 		}
 		if (client.parser.parse(client_req, client.req) == ParseRequest::ParsingComplete) {
-			std::string response = this->handle_parsed_request(clients[client_fd].req, client_fd);
+			this->RequestHandler.handle(config, client.req, client_fd);
 			std::cout << "Request parsed successfully:\n" << client_req << std::endl;
 			client_req.clear();
 			return;

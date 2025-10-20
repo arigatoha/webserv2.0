@@ -24,7 +24,7 @@ class Server {
         std::map<int, Client>   clients;
         Config                  config;
         ParseConfig				ConfigParser;
-        RequestHandler          RequsetHandler;
+        RequestHandler          RequestHandler;
 
         std::string		generate_response(Client &client);
         void    		init_epoll(epoll_event *ev);
@@ -34,7 +34,4 @@ class Server {
         void    		handle_new_connection();
         void    		handle_client_event(int client_fd, int epoll_fd, std::map<int, Client> &clients);
         void    		disconnect_client(int client_fd, int epoll_fd, std::map<int, Client> &clients);
-        std::string		handle_parsed_request(const HttpRequest &req, int client_fd);
-		std::string     checkReqPath(const std::string &path);
-
 };
