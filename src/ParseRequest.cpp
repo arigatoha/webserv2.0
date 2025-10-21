@@ -2,6 +2,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cctype>
+#include <stdlib.h>
 
 #define	EOL	"\r\n"
 #define	EOH	"\r\n\r\n"
@@ -98,19 +99,24 @@ void		ParseRequest::parseFirstLine(std::string &_current_line, HttpRequest &req)
 ParseRequest::BodyState	ParseRequest::parseBody(size_t eoh_pos, const std::string &raw_request, HttpRequest &req) {
 	size_t	body_size = 0;
 	size_t	headers_size = eoh_pos + 4;
+	const std::string &method = req.getMethod();
 
 	if (method == "GET" || method == "DELETE" || method == "HEAD") {
 		return BodyNotSent;
 	}
-	if (headers.find("content-length") == headers.end())
+	try
+	{
+		body_size = std::atoi(req.getHeader("content-length").c_str());
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
 		return BodyError;
-
-	body_size = std::stoul(headers.at("content-length"));
-
+	}
 	if (body_size > 0 && raw_request.size() < headers_size + body_size) {
 		return BodyIncomplete;
 	}
-	body = raw_request.substr(body_size + 1); // +1 ?
+	req.setBody() = raw_request.substr(body_size + 1); // +1 ?
 }
 
 ParseRequest::ParseResult ParseRequest::parse(const std::string &raw_request, HttpRequest &req) {
