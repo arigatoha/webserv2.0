@@ -113,7 +113,7 @@ const std::string	RequestHandler::getDefaultError(int status_code) {
 }
 
 const Location	*RequestHandler::findBestLocationMatch(const Config &serv_cfg, const std::string &url) {
-	const Location	*best_match = nullptr;
+	const Location	*best_match = NULL;
 	size_t			longest_len = 0;
 	
 	const std::vector<Location>	&locations = serv_cfg.getLocations();
@@ -168,7 +168,7 @@ void	RequestHandler::sendString(int client_fd, const std::string &response) {
 }
 
 void	RequestHandler::streamFileBody(int client_fd, const std::string &file_path) {
-	std::ifstream	file(file_path, std::ios::binary);
+	std::ifstream	file(file_path.c_str(), std::ios::binary);
 
 	char	buf[SBUF];
 	while (file.good()) {
@@ -183,9 +183,6 @@ void	RequestHandler::streamFileBody(int client_fd, const std::string &file_path)
 		}
 	}
 }
-
-
-std::string			RequestHandler::genAutoindexAction(const ResolvedAction &action) {}
 
 void			RequestHandler::sendDefaultError(int status_code, int client_fd) {
 	const std::string error_str = getDefaultError(status_code);
@@ -222,7 +219,7 @@ std::string		RequestHandler::createDirListHtml(const std::string &physical_path,
 		if (name == ".." || name == ".")
 			continue;
 		std::string href_link = logic_path;
-		if (href_link.back() != '/')
+		if (href_link[href_link.length() - 1] != '/')
 			href_link += "/";
 		struct stat st;
 		if (stat((physical_path + "/" + href_link).c_str(), &st) == 0 &&
@@ -236,6 +233,7 @@ std::string		RequestHandler::createDirListHtml(const std::string &physical_path,
 				 "</body>\r\n"
 				 "</html>\r\n";
 	closedir(directory);
+	return html_body;
 }
 
 void			RequestHandler::sendDir(const std::string &phys_path, int client_fd, const std::string &logic_path) {
@@ -303,7 +301,7 @@ ResolvedAction	RequestHandler::resolveRequestToAction(const Config &serv_cfg, co
 	return checkReqPath(phys_path, serv_cfg, location);
 }
 
-ResolvedAction RequestHandler::resolveFileAction(const std::string &path, const Config &cfg, struct stat *st) {
+ResolvedAction RequestHandler::resolveFileAction(const std::string &path, struct stat *st) {
 	ResolvedAction	action;
 
 	action.st = *st;
@@ -370,7 +368,20 @@ ResolvedAction	RequestHandler::checkReqPath(const std::string &path, const Confi
 		return resolveDirAction(path, cfg, &st, location);
 	}
 	else if (S_ISREG(st.st_mode))
-		return resolveFileAction(path, cfg, &st);
+		return resolveFileAction(path, &st);
 	//Fallback
 	return resolveErrorAction(403, cfg);
+}
+
+RequestHandler::RequestHandler() {}
+
+RequestHandler::~RequestHandler() {}
+
+RequestHandler::RequestHandler(const RequestHandler &other) {
+	*this = other;
+}
+
+RequestHandler &RequestHandler::operator=(const RequestHandler &other) {
+	(void)other;
+	return *this;
 }

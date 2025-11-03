@@ -4,37 +4,28 @@
 #include <fstream>
 #include <sstream>
 #include <errno.h>
+#include <sys/stat.h>
+#include <cstring>
 
 #define	EOL	"\r\n"
 
 std::string    ParseConfig::safelyExtractRawStr(const std::string &path) {
 	std::stringstream   buffer;
+	struct stat file_stat;
+	if (stat(path.c_str(), &file_stat) != 0) {
+		std::cerr << "Error: Unable to open configuration file: " << strerror(errno) << std::endl;
+		throw std::runtime_error("Could not open configuration file.");
+	}
+	if (!S_ISREG(file_stat.st_mode)) {
+		std::cerr << "Error: Configuration file is not a regular file." << std::endl;
+		throw std::runtime_error("Configuration file is not a regular file.");
+	}
 
 	std::ifstream file(path.c_str(), std::ios::binary);
 
 	buffer << file.rdbuf();
 
 	return buffer.str();
-}
-
-std::pair<std::string, std::string>	ParseConfig::parseLocDirectives(std::vector<std::string> &tokens) {
-	std::pair<std::string, std::string>	pair;
-	std::string							key;
-	std::string							value;
-
-	key = tokens.front();
-	tokens.erase(tokens.begin());
-	value = tokens.front();
-	tokens.erase(tokens.begin());
-	while (tokens.front() != ";") {
-		value.append(" " + tokens.front());
-		tokens.erase(tokens.begin());
-	}
-	tokens.erase(tokens.begin());
-
-	pair.first = key;
-	pair.second = value;
-	return pair;
 }
 
 void	ParseConfig::syntaxCheck() {
@@ -54,7 +45,7 @@ void	ParseConfig::syntaxCheck() {
 void ParseConfig::parse(const std::string &cfg_path, Config &config) {
 	_tokens = tokenize(cfg_path);
 	_token_index = 0;
-
+	
 	syntaxCheck();
 	parseBlock(config);
 }
@@ -67,12 +58,12 @@ void ParseConfig::parse(const std::string &cfg_path, Config &config) {
 // }
 
 const Token		&ParseConfig::getNextToken() {
-	if (!isAtEnd())
+	if (isAtEnd())
 		throw std::runtime_error("Parsing error: Unexpected end of file.");
 	return _tokens[_token_index++];
 }
 const Token		&ParseConfig::peekNextToken() const {
-	if (!isAtEnd())
+	if (isAtEnd())
 		throw std::runtime_error("Parsing error: Unexpected end of file.");
 	return _tokens[_token_index];
 }
@@ -95,8 +86,11 @@ Location	ParseConfig::parseLocationBlock() {
 			break;
 		else if (key == "error_page") {
 			std::vector<std::string>	error_code;
-			while (peekNextToken().value != ";")
+			while (1) {
 				error_code.push_back(getNextToken().value);
+				if (error_code.back()[error_code.back().length()-1] == ';')
+					break;
+			}
 			std::string		error_file = error_code.back();
 			error_code.pop_back();
 			while (!error_code.empty()) {
@@ -106,8 +100,11 @@ Location	ParseConfig::parseLocationBlock() {
 		}
 		else {
 			std::vector<std::string>	value;
-			while (peekNextToken().value != ";")
+			while (1) {
 				value.push_back(getNextToken().value);
+				if (value.back()[value.back().length()-1] == ';')
+					break;
+			}
 			if (value.size() != 1)
 				loc.setMultiDirective(key, value);
 			else
@@ -121,6 +118,8 @@ void ParseConfig::parseBlock(AConfigBlock &block) {
 	std::string							key;
 
 	for (;;) {
+		int i = 0;
+		std::cout << i << std::endl;
 		key = getNextToken().value;
 
 		if (key == "}")
@@ -138,8 +137,11 @@ void ParseConfig::parseBlock(AConfigBlock &block) {
 		}
 		else if (key == "error_page") {
 			std::vector<std::string>	error_code;
-			while (peekNextToken().value != ";")
+			while (1) {
 				error_code.push_back(getNextToken().value);
+				if (error_code.back()[error_code.back().length()-1] == ';')
+					break;
+			}
 			std::string		error_file = error_code.back();
 			error_code.pop_back();
 			while (!error_code.empty()) {
@@ -148,14 +150,19 @@ void ParseConfig::parseBlock(AConfigBlock &block) {
 			}
 		}
 		else {
+			std::cout << key << std::endl;
 			std::vector<std::string>	value;
-			while (peekNextToken().value != ";")
+			while (1) {
 				value.push_back(getNextToken().value);
+				if (value.back()[value.back().length()-1] == ';')
+					break;
+			}
 			if (value.size() != 1)
 				block.setMultiDirective(key, value);
 			else
 				block.setDirective(key, value[0]);
 		}
+		++i;
 	}
 }
 
@@ -168,12 +175,29 @@ std::vector<Token>    ParseConfig::tokenize(const std::string &path) {
 
 	raw_config = safelyExtractRawStr(path);
 	tokenStream.str(raw_config);
-
+	
 	line = 1;
 	while (tokenStream >> token.value) {
 		tokens.push_back(token);
-		if (token.value == EOL)
+		if (token.value.find(EOL) != token.value.npos) {
 			++line;
+		}
 	}
 	return tokens;
+}
+
+ParseConfig::ParseConfig() {}
+
+ParseConfig::~ParseConfig() {}
+
+ParseConfig::ParseConfig(const ParseConfig &other) {
+	*this = other;
+}
+
+ParseConfig &ParseConfig::operator=(const ParseConfig &other) {
+	if (this != &other) {
+		this->_tokens = other._tokens;
+		this->_token_index = other._token_index;
+	}
+	return *this;
 }

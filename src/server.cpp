@@ -54,7 +54,7 @@ void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Clie
 			return;
 		}
 		if (client.parser.parse(client_req, client.req) == ParseRequest::ParsingComplete) {
-			this->RequestHandler.handle(config, client.req, client_fd);
+			this->handler.handle(config, client.req, client_fd);
 			std::cout << "Request parsed successfully:\n" << client_req << std::endl;
 			client_req.clear();
 			return;
@@ -76,6 +76,7 @@ void Server::run(const std::string &cfg_file) {
 	struct epoll_event		ev;
 
 	ConfigParser.parse(cfg_file, this->config);
+	std::cout << "qq" << std::endl;
 	this->init_sockets(this->config.getPort());
 
 	if (listen(this->listen_sock, LISTEN_BACKLOG) == -1) {
@@ -179,4 +180,27 @@ void	Server::run_event_loop(epoll_event *ev) {
 			}
 		}
 	}
+}
+
+Server::Server() : listen_sock(-1), epoll_fd(-1) {}
+
+Server::~Server() {
+	if (this->listen_sock != -1)
+		close(this->listen_sock);
+	if (this->epoll_fd != -1)
+		close(this->epoll_fd);
+}
+
+Server::Server(const Server &other) { *this = other; }
+
+Server &Server::operator=(const Server &other) {
+	if (this != &other) {
+		this->listen_sock = other.listen_sock;
+		this->epoll_fd = other.epoll_fd;
+		this->clients = other.clients;
+		this->config = other.config;
+		this->ConfigParser = other.ConfigParser;
+		this->handler = other.handler;
+	}
+	return *this;
 }
