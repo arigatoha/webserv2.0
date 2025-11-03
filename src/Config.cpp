@@ -35,3 +35,13 @@ bool    Config::addLocation(const Location &loc) {
 const std::vector<Location>		&Config::getLocations() const {
 	return this->_locations;
 }
+
+bool		Config::getErrorPage(int code, std::string &errorPage) const {
+    std::map<int, std::string>::const_iterator	it;
+
+    it = error_pages.find(code);
+    if (it == error_pages.end())
+        return false;
+    errorPage = it->second;
+    return true;
+}

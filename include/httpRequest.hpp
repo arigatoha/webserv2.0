@@ -24,7 +24,7 @@ class HttpRequest {
 		void				setVersion(const std::string &version);
 		void				setQuery(const std::string &query);	
 		void				setBody(const std::string &body);
-		void				setHeaders(const std::string &Headers);
+		void				addHeader(const std::string &key, const std::string &value);
 
 	private:
 		std::string							_method;

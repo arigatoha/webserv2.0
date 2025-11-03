@@ -24,7 +24,7 @@ class Server {
         std::map<int, Client>   clients;
         Config                  config;
         ParseConfig				ConfigParser;
-        RequestHandler          RequestHandler;
+        RequestHandler          handler;
 
         std::string		generate_response(Client &client);
         void    		init_epoll(epoll_event *ev);

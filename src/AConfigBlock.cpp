@@ -1,5 +1,6 @@
 #include "AConfigBlock.hpp"
 #include "StringUtils.hpp"
+#include <iostream>
 
 bool AConfigBlock::getDirective(const std::string &key, std::string &out_val) const {
 	std::map<std::string, std::string>::const_iterator	it;
@@ -60,4 +61,16 @@ bool		AConfigBlock::getErrorPage(int error_code, std::string &out_val) const {
 	out_val = it->second;
 	return true;
 
+}
+
+void		AConfigBlock::addLimitExceptRules(const std::string &key, const std::string &value) {
+	if (key == "method")
+		this->_rules._methods.push_back(value);
+	else if (key == "allow")
+		this->_rules._allow.push_back(value);
+	else if (key == "deny")
+		this->_rules._deny.push_back(value);
+	else
+		std::cerr << "WARNING.Unknown rule in limit_except. Continuing...\n";
+	return ;
 }

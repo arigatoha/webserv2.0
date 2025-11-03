@@ -29,9 +29,6 @@ class ParseRequest {
 
 		ParseResult		parse(const std::string &raw_request, HttpRequest &req);
 
-		bool    		isError();
-		bool    		isRequest();
-
 	private:
 		void							parseFirstLine(std::string &_current_line, HttpRequest &req);
 		template <typename T>

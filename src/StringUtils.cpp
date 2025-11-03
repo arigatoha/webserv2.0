@@ -1,7 +1,7 @@
 #include "StringUtils.hpp"
 #include <sstream>
 
-std::vector<std::string>    split(const std::string &s, char delimiter) {
+std::vector<std::string>    StringUtils::split(const std::string &s, char delimiter) {
     std::vector<std::string>    tokens;
     std::string                 token;
     std::istringstream          tokenStream(s);
@@ -13,7 +13,7 @@ std::vector<std::string>    split(const std::string &s, char delimiter) {
     return tokens;
 }
 
-std::vector<std::string>    extractSubVecOfStr(const std::vector<std::string> &src) {
+std::vector<std::string>    StringUtils::extractSubVecOfStr(const std::vector<std::string> &src) {
 	std::vector<std::string>    sub_vec;
 	size_t                      open_braces;
 	size_t                      close_braces;
@@ -34,7 +34,7 @@ std::vector<std::string>    extractSubVecOfStr(const std::vector<std::string> &s
 	return sub_vec;
 }
 
-std::string		myItoa(int input) {
+std::string		StringUtils::myItoa(int input) {
     std::stringstream res;
     res << input;
     return res.str();

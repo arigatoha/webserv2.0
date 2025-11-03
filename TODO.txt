@@ -1,5 +1,11 @@
 Trying to compile, should improve parseBody(), parseHeaders an parse() in the ParseRequest, potentially change to ParseConfig tokenization.
 
+POST AND DELETE METHODS HANDLE, SO FAR ONLY GET IS HANDLED
+
+truncate semicolon from the last values in the config before appending
+
+KEEP ALIVE TIMER!!!
+
 Stream send files to the client.
 
 PARSE ERROR PAGES FROM THE CONFIG!!!

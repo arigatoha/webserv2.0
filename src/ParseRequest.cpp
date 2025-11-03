@@ -74,7 +74,7 @@ void		ParseRequest::parseHeaders(std::string &request, HttpRequest &req) {
 		value = request.substr(delim_pos + 1);
 		trimLeftWhitespace(key);
 		trimLeftWhitespace(value);
-		store_headers[key] = value; // potentially should check for duplicates
+		req.addHeader(key, value);
 	}
 }
 
@@ -116,7 +116,8 @@ ParseRequest::BodyState	ParseRequest::parseBody(size_t eoh_pos, const std::strin
 	if (body_size > 0 && raw_request.size() < headers_size + body_size) {
 		return BodyIncomplete;
 	}
-	req.setBody() = raw_request.substr(body_size + 1); // +1 ?
+	req.setBody(raw_request.substr(headers_size, body_size));// +1 ?
+	return BodySent;
 }
 
 ParseRequest::ParseResult ParseRequest::parse(const std::string &raw_request, HttpRequest &req) {
@@ -144,8 +145,8 @@ ParseRequest::ParseRequest() {}
 
 ParseRequest::~ParseRequest() {}
 
-ParseRequest::ParseRequest(const ParseRequest &other) {}
-ParseRequest &ParseRequest::operator=(const ParseRequest &other) {}
-
-bool    ParseRequest::isError() {}
-bool    ParseRequest::isRequest() {}
+ParseRequest::ParseRequest(const ParseRequest &other) { *this = other; }
+ParseRequest &ParseRequest::operator=(const ParseRequest &other) {
+	(void)other;
+	return *this;
+}

@@ -24,7 +24,7 @@ class RequestHandler {
 		ResolvedAction		resolveRequestToAction(const Config &serv_cfg, const std::string &req_path);
 		ResolvedAction		checkReqPath(const std::string &path, const Config &cfg, const Location *location);
 		ResolvedAction		resolveErrorAction(int error_code, const Config &serv_cfg);
-		ResolvedAction		resolveFileAction(const std::string &path, const Config &cfg, struct stat *st);
+		ResolvedAction		resolveFileAction(const std::string &path, struct stat *st);
 		ResolvedAction		resolveDirAction(const std::string &path, const Config &cfg, struct stat *st,
 								const Location *location);
 		bool				findAccessibleIndex(ResolvedAction &action, const std::string &dir_path,
