@@ -102,8 +102,10 @@ Location	ParseConfig::parseLocationBlock() {
 			std::vector<std::string>	value;
 			while (1) {
 				value.push_back(getNextToken().value);
-				if (value.back()[value.back().length()-1] == ';')
+				if (value.back()[value.back().length()-1] == ';') {
+					value.back().erase(value.back().length()-1);
 					break;
+				}
 			}
 			if (value.size() != 1)
 				loc.setMultiDirective(key, value);
@@ -119,7 +121,7 @@ void ParseConfig::parseBlock(AConfigBlock &block) {
 
 	for (;;) {
 		int i = 0;
-		std::cout << i << std::endl;
+
 		key = getNextToken().value;
 
 		if (key == "}")
@@ -150,12 +152,14 @@ void ParseConfig::parseBlock(AConfigBlock &block) {
 			}
 		}
 		else {
-			std::cout << key << std::endl;
+			// std::cout << key << std::endl;
 			std::vector<std::string>	value;
 			while (1) {
 				value.push_back(getNextToken().value);
-				if (value.back()[value.back().length()-1] == ';')
+				if (value.back()[value.back().length()-1] == ';') {
+					value.back().erase(value.back().length()-1);
 					break;
+				}
 			}
 			if (value.size() != 1)
 				block.setMultiDirective(key, value);

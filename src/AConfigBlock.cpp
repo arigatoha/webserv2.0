@@ -13,7 +13,7 @@ bool AConfigBlock::getDirective(const std::string &key, std::string &out_val) co
 }
 
 void AConfigBlock::setDirective(const std::string &key, const std::string &value) {
-	if (_directives.find(key) == _directives.end())
+	if (_directives.find(key) != _directives.end())
 		return ;
 	_directives[key] = value;
 }
@@ -40,13 +40,13 @@ bool AConfigBlock::getIndexes(std::vector<std::string> &out_val) const {
 }
 
 void AConfigBlock::setMultiDirective(const std::string &key, const std::vector<std::string> &value) {
-	if (_multiDirectives.find(key) == _multiDirectives.end())
+	if (_multiDirectives.find(key) != _multiDirectives.end())
 		return ;
 	_multiDirectives[key] = value;
 }
 
 void		AConfigBlock::setErrorPage(const std::string &error_code, const std::string &file) {
-	if (_error_pages.find(error_code) == _error_pages.end())
+	if (_error_pages.find(error_code) != _error_pages.end())
 		return ;
 	_error_pages[error_code] = file;
 }

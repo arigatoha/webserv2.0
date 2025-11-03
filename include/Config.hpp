@@ -16,7 +16,8 @@ class Config : public AConfigBlock {
 
 		const std::vector<Location>		&getLocations() const;
 		bool							addLocation(const Location &loc);
-		const char					*getPort() const { return _directives.at("listen").c_str(); }
+		bool							getPort(const std::string &key, std::string &out_val) const;
+
 		bool						getErrorPage(int code, std::string &errorPage) const;
 	private:
 
