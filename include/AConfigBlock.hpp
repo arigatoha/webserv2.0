@@ -24,7 +24,6 @@ class AConfigBlock {
 		virtual void						setDirective(const std::string &key, const std::string &value);
         virtual void						setMultiDirective(const std::string &key, const std::vector<std::string> &value);
 		virtual void						setErrorPage(const std::string &error_code, const std::string &file);
-		virtual void						addLimitExceptRules(const std::string &key, const std::string &value);
 
 	protected:
 
@@ -37,5 +36,4 @@ class AConfigBlock {
 		std::map<std::string, std::string>					_error_pages;
 		std::map<std::string, std::string>					_directives;
 		std::map<std::string, std::vector<std::string> >	_multiDirectives;
-		limitExceptRules									_rules;
 	};

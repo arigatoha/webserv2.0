@@ -25,5 +25,6 @@ class Config : public AConfigBlock {
 
     	std::map<int, std::string>			error_pages;
 		std::vector<Location>				_locations;
+		
 
 };

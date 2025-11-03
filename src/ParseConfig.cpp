@@ -88,14 +88,30 @@ Location	ParseConfig::parseLocationBlock() {
 			std::vector<std::string>	error_code;
 			while (1) {
 				error_code.push_back(getNextToken().value);
-				if (error_code.back()[error_code.back().length()-1] == ';')
+				if (error_code.back()[error_code.back().length()-1] == ';') {
+					error_code.back().erase(error_code.back().length()-1);
 					break;
+				}
 			}
 			std::string		error_file = error_code.back();
 			error_code.pop_back();
 			while (!error_code.empty()) {
 				loc.setErrorPage(error_code.back(), error_file);
 				error_code.pop_back();
+			}
+		}
+		else if (key == "limit_except") {
+			loc.addLimitExceptRules("method", getNextToken().value);
+			if (peekNextToken().value == "{") {
+				getNextToken().value;
+			}
+			while (1) {
+				std::string limKey = getNextToken().value;
+				if (limKey == "}")
+					break;
+				std::string limVal = getNextToken().value;
+				limVal.erase(limVal.length()-1);
+				loc.addLimitExceptRules(limKey, limVal);
 			}
 		}
 		else {
@@ -128,21 +144,25 @@ void ParseConfig::parseBlock(AConfigBlock &block) {
 			return;
 		if (key == "location" && peekNextToken().value.find('/') == 0) {
 			Config	*serv_cfg = dynamic_cast<Config*>(&block);
+			std::cout << "qweqwe" << std::endl;
 			if (serv_cfg == NULL) {
 				throw std::runtime_error("config error. location block not in the server directive.");
 			}
 			Location loc = parseLocationBlock();
-
 			if (serv_cfg->addLocation(loc) == false) {
 				throw std::runtime_error("config error. duplicate location.");
 			}
 		}
+		else if (key == "limit_except")
+			throw std::runtime_error("limit_except in the server block");
 		else if (key == "error_page") {
 			std::vector<std::string>	error_code;
 			while (1) {
 				error_code.push_back(getNextToken().value);
-				if (error_code.back()[error_code.back().length()-1] == ';')
+				if (error_code.back()[error_code.back().length()-1] == ';') {
+					error_code.back().erase(error_code.back().length()-1);
 					break;
+				}
 			}
 			std::string		error_file = error_code.back();
 			error_code.pop_back();
