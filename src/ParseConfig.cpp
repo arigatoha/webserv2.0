@@ -144,7 +144,6 @@ void ParseConfig::parseBlock(AConfigBlock &block) {
 			return;
 		if (key == "location" && peekNextToken().value.find('/') == 0) {
 			Config	*serv_cfg = dynamic_cast<Config*>(&block);
-			std::cout << "qweqwe" << std::endl;
 			if (serv_cfg == NULL) {
 				throw std::runtime_error("config error. location block not in the server directive.");
 			}

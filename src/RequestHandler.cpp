@@ -119,7 +119,6 @@ const Location	*RequestHandler::findBestLocationMatch(const Config &serv_cfg, co
 	size_t			longest_len = 0;
 	
 	const std::vector<Location>	&locations = serv_cfg.getLocations();
-	std::cout << "location size: " << locations.size() << std::endl;
 	for (size_t i = 0; i < locations.size(); ++i) {
 		const std::string &loc_path = locations[i].getPath();
 		if (url.find(loc_path, 0) != url.npos) {
@@ -295,8 +294,8 @@ ResolvedAction	RequestHandler::resolveRequestToAction(const Config &serv_cfg, co
 	std::string		phys_path;
 	
 	const Location *location = findBestLocationMatch(serv_cfg, req_path);
+	// WIP, so far need to handle "//"
 	if (location == NULL) {
-		std::cout << "yoyo";
 		return resolveErrorAction(404, serv_cfg);
 	}
 	if (normalizePath(location->getPath() + req_path, phys_path) == false) {
