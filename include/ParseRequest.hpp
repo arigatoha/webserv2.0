@@ -31,6 +31,8 @@ class ParseRequest : public AParser {
 		ParseResult		parse(const std::string &raw_request, HttpRequest &req);
 
 	private:
+		std::string						getNextLine(std::string &request);
+		std::vector<std::string>    	tokenizeFirstLine(const std::string &first_line);
 		void							parseFirstLine(std::string &_current_line, HttpRequest &req);
 		template <typename T>
 		std::string						trimToken(std::string &src, T token);
