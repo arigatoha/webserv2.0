@@ -134,8 +134,11 @@ const Location	*RequestHandler::findBestLocationMatch(const Config &serv_cfg, co
 bool RequestHandler::normalizePath(const std::string &input_path, std::string &resolved_path) {
 	char actual_path[PATH_MAX];
 	
-	if (realpath(input_path.c_str(), actual_path) == NULL)
+	std::cout << "input_path:" << input_path << "q" << std::endl;
+	if (realpath(input_path.c_str(), actual_path) == NULL) {
+		std::cout << "errno: " << strerror(errno) << std::endl;
 		return false;
+	}
 	resolved_path = actual_path;
 	return true;
 }
@@ -248,6 +251,7 @@ void			RequestHandler::sendDir(const std::string &phys_path, int client_fd, cons
 void RequestHandler::handle(const Config &serv_cfg, const HttpRequest &req, int client_fd) {
 	ResolvedAction	action;
 
+	std::cout << "space in path" << req.getPath() << "q" << std::endl;
 	action = resolveRequestToAction(serv_cfg, req.getPath());
 	switch (action.type) {
 		case ACTION_SERVE_FILE:
@@ -299,6 +303,7 @@ ResolvedAction	RequestHandler::resolveRequestToAction(const Config &serv_cfg, co
 		return resolveErrorAction(404, serv_cfg);
 	}
 	if (normalizePath(location->getPath() + req_path, phys_path) == false) {
+		std::cout << "alesha" << std::endl;
 		return resolveErrorAction(404, serv_cfg);
 	}
 	return checkReqPath(phys_path, serv_cfg, location);

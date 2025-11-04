@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <stdlib.h>
+#include "StringUtils.hpp"
 
 #define	EOL	"\r\n"
 #define	EOH	"\r\n\r\n"
@@ -17,9 +18,9 @@ std::string		ParseRequest::trimToken(std::string &src, T token) {
 	ele_pos = src.find(token);
 	
 	if (ele_pos != src.npos) {
-		res = src.substr(0, ele_pos + 1);
+		res = src.substr(0, ele_pos);
 		// if (eraseFound)
-		src.erase(0, ele_pos + 1);
+		src.erase(0, ele_pos);
 		return	res;
 	}
 	return src;
@@ -120,14 +121,14 @@ ParseRequest::BodyState	ParseRequest::parseBody(size_t eoh_pos, const std::strin
 }
 
 ParseRequest::ParseResult ParseRequest::parse(const std::string &raw_request, HttpRequest &req) {
-	std::string		_current_line;
-	std::string		reqNoBody;
-	size_t			eoh_pos;
+	std::string				_current_line;
+	std::vector<Token>		reqNoBody;
+	size_t					eoh_pos;
 
 	eoh_pos = raw_request.find(EOH);
 	if (eoh_pos == raw_request.npos)
 		return ParsingIncomplete;
-	reqNoBody = raw_request.substr(0, eoh_pos + 2);
+	reqNoBody = StringUtils::tokenize(raw_request.substr(0, eoh_pos + 2));
 	
 	_current_line = trimToken(reqNoBody, EOL);
 	parseFirstLine(_current_line, req);

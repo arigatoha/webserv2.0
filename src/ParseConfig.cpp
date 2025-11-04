@@ -7,27 +7,6 @@
 #include <sys/stat.h>
 #include <cstring>
 
-#define	EOL	"\r\n"
-
-std::string    ParseConfig::safelyExtractRawStr(const std::string &path) {
-	std::stringstream   buffer;
-	struct stat file_stat;
-	if (stat(path.c_str(), &file_stat) != 0) {
-		std::cerr << "Error: Unable to open configuration file: " << strerror(errno) << std::endl;
-		throw std::runtime_error("Could not open configuration file.");
-	}
-	if (!S_ISREG(file_stat.st_mode)) {
-		std::cerr << "Error: Configuration file is not a regular file." << std::endl;
-		throw std::runtime_error("Configuration file is not a regular file.");
-	}
-
-	std::ifstream file(path.c_str(), std::ios::binary);
-
-	buffer << file.rdbuf();
-
-	return buffer.str();
-}
-
 void	ParseConfig::syntaxCheck() {
 	if (getNextToken().value == "server") {
 		if (getNextToken().value == "{") {
@@ -43,8 +22,7 @@ void	ParseConfig::syntaxCheck() {
 }
 
 void ParseConfig::parse(const std::string &cfg_path, Config &config) {
-	_tokens = tokenize(cfg_path);
-	_token_index = 0;
+	tokenize(cfg_path);
 	
 	syntaxCheck();
 	parseBlock(config);
@@ -56,21 +34,6 @@ void ParseConfig::parse(const std::string &cfg_path, Config &config) {
 
 // 	// TODO pushback to server cfgs vector
 // }
-
-const Token		&ParseConfig::getNextToken() {
-	if (isAtEnd())
-		throw std::runtime_error("Parsing error: Unexpected end of file.");
-	return _tokens[_token_index++];
-}
-const Token		&ParseConfig::peekNextToken() const {
-	if (isAtEnd())
-		throw std::runtime_error("Parsing error: Unexpected end of file.");
-	return _tokens[_token_index];
-}
-bool			ParseConfig::isAtEnd() const {
-	return this->_token_index >= _tokens.size();
-
-}
 
 Location	ParseConfig::parseLocationBlock() {
 	std::string key;
@@ -187,26 +150,6 @@ void ParseConfig::parseBlock(AConfigBlock &block) {
 		}
 		++i;
 	}
-}
-
-std::vector<Token>    ParseConfig::tokenize(const std::string &path) {
-	std::vector<Token>    		tokens;
-	Token                 		token;
-	std::string                 raw_config;
-	std::stringstream          	tokenStream;
-	size_t						line;
-
-	raw_config = safelyExtractRawStr(path);
-	tokenStream.str(raw_config);
-	
-	line = 1;
-	while (tokenStream >> token.value) {
-		tokens.push_back(token);
-		if (token.value.find(EOL) != token.value.npos) {
-			++line;
-		}
-	}
-	return tokens;
 }
 
 ParseConfig::ParseConfig() {}

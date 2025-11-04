@@ -4,8 +4,9 @@
 #include <map>
 #include "httpRequest.hpp"
 #include "Config.hpp"
+#include "AParser.hpp"
 
-class ParseRequest {
+class ParseRequest : public AParser {
 	public:
 
 		enum ParseResult {
