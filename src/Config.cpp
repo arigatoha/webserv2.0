@@ -45,3 +45,13 @@ bool		Config::getErrorPage(int code, std::string &errorPage) const {
     errorPage = it->second;
     return true;
 }
+
+bool Config::getPort(const std::string &key, std::string &out_val) const {
+	std::map<std::string, std::string>::const_iterator	it;
+
+	it = _directives.find(key);
+	if (it == _directives.end())
+		return false;
+	out_val = it->second;
+	return true;
+}

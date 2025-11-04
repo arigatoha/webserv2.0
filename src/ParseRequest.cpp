@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cctype>
 #include <stdlib.h>
+#include <sstream>
+#include <algorithm>
 
 #define	EOL	"\r\n"
 #define	EOH	"\r\n\r\n"
@@ -17,44 +19,52 @@ std::string		ParseRequest::trimToken(std::string &src, T token) {
 	ele_pos = src.find(token);
 	
 	if (ele_pos != src.npos) {
-		res = src.substr(0, ele_pos);
-		// if (eraseFound)
-		src.erase(0, ele_pos);
-
+		res = src.substr(0, ele_pos + 1);
+		src.erase(0, ele_pos + 1);
 		return	res;
 	}
 	return src;
 }
 
+std::vector<std::string>    ParseRequest::tokenizeFirstLine(const std::string &first_line) {
+	std::vector<std::string>    tokens;
+	std::string                 token;
+	std::stringstream          	tokenStream;
 
-void		ParseRequest::parseMethod(std::string &first_line, HttpRequest &req) {
-	std::string		_substring;
-
-	_substring = trimToken(first_line, SPACE);
-
-	req.setMethod(_substring); // TODO: maybe tolower()
+	tokenStream.str(first_line);
+	
+	while (tokenStream >> token) {
+		tokens.push_back(token);
+	}
+	return tokens;
 }
 
+void		ParseRequest::parseMethod(std::string &method, HttpRequest &req) {
+	req.setMethod(method);
+}
 
-void		ParseRequest::parsePathAndQuery(std::string &line_remainder, HttpRequest &req) {
+void		ParseRequest::parsePathAndQuery(std::string &pathAndQuery, HttpRequest &req) {
 	std::string		_substring;
 
-	_substring = trimToken(line_remainder, '?');
-	if (_substring != line_remainder) {
+	_substring = trimToken(pathAndQuery, '?');
+	if (_substring != pathAndQuery) {
 		req.setPath(_substring);
-		req.setQuery(trimToken(line_remainder, SPACE));
+		req.setQuery(pathAndQuery.substr(_substring.length()));
 	}
 	else {
-		req.setPath(trimToken(line_remainder, SPACE));
+		req.setPath(pathAndQuery);
 		req.setQuery("");
 	}
 }
 
 
-void		ParseRequest::parseHttpVer(std::string &line_remainder, HttpRequest &req) {
-	req.setVersion(trimToken(line_remainder, EOL));
+void		ParseRequest::parseHttpVer(std::string &httpVer, HttpRequest &req) {
+	req.setVersion(httpVer);
 }
 
+std::string		ParseRequest::getNextLine(std::string &request) {
+	return trimToken(request, EOL);
+}
 
 void		ParseRequest::parseHeaders(std::string &request, HttpRequest &req) {
 	std::string		header_line;
@@ -63,15 +73,15 @@ void		ParseRequest::parseHeaders(std::string &request, HttpRequest &req) {
 	size_t			delim_pos;
 
 	while(!request.empty()) {
-		header_line = trimToken(request, EOL);
+		header_line = getNextLine(request);
 		if (header_line == EOL)
 			break;
-		delim_pos = request.find(':');
-		if (delim_pos == request.npos)
+		delim_pos = header_line.find(':');
+		if (delim_pos == header_line.npos)
 			break;
-		key = request.substr(0, delim_pos);
+		key = header_line.substr(0, delim_pos);
 		std::transform(key.begin(), key.end(), key.begin(), ::tolower);
-		value = request.substr(delim_pos + 1);
+		value = header_line.substr(delim_pos + 1);
 		trimLeftWhitespace(key);
 		trimLeftWhitespace(value);
 		req.addHeader(key, value);
@@ -90,10 +100,13 @@ void		ParseRequest::trimLeftWhitespace(std::string &to_trim) {
 }
 
 void		ParseRequest::parseFirstLine(std::string &_current_line, HttpRequest &req) {
-	parseMethod(_current_line, req);
-	parseHttpVer(_current_line, req);
-	parsePathAndQuery(_current_line, req);
-
+	std::vector<std::string> first_line = tokenizeFirstLine(_current_line);
+	std::reverse(first_line.begin(), first_line.end());
+	parseMethod(first_line.back(), req);
+	first_line.pop_back();
+	parsePathAndQuery(first_line.back(), req);
+	first_line.pop_back();
+	parseHttpVer(first_line.back(), req);
 }
 
 ParseRequest::BodyState	ParseRequest::parseBody(size_t eoh_pos, const std::string &raw_request, HttpRequest &req) {
@@ -104,6 +117,7 @@ ParseRequest::BodyState	ParseRequest::parseBody(size_t eoh_pos, const std::strin
 	if (method == "GET" || method == "DELETE" || method == "HEAD") {
 		return BodyNotSent;
 	}
+	std::cout << "parsebodyqq" << std::endl;
 	try
 	{
 		body_size = std::atoi(req.getHeader("content-length").c_str());
@@ -121,15 +135,15 @@ ParseRequest::BodyState	ParseRequest::parseBody(size_t eoh_pos, const std::strin
 }
 
 ParseRequest::ParseResult ParseRequest::parse(const std::string &raw_request, HttpRequest &req) {
-	std::string		_current_line;
-	std::string		reqNoBody;
-	size_t			eoh_pos;
-	
+	std::string				_current_line;
+	std::vector<Token>		reqNoBody;
+	size_t					eoh_pos;
+
 	eoh_pos = raw_request.find(EOH);
 	if (eoh_pos == raw_request.npos)
 		return ParsingIncomplete;
-	reqNoBody = raw_request.substr(0, eoh_pos + 2);
-
+	reqNoBody = StringUtils::tokenize(raw_request.substr(0, eoh_pos + 2));
+	
 	_current_line = trimToken(reqNoBody, EOL);
 	parseFirstLine(_current_line, req);
 	
@@ -137,7 +151,7 @@ ParseRequest::ParseResult ParseRequest::parse(const std::string &raw_request, Ht
 	
 	if (parseBody(eoh_pos, raw_request, req) == BodyIncomplete)
 		return ParsingIncomplete;
-
+	
 	return ParsingComplete;
 }
 

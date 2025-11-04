@@ -1,8 +1,8 @@
-Trying to compile, should improve parseBody(), parseHeaders an parse() in the ParseRequest, potentially change to ParseConfig tokenization.
+RequestHandler line 297!!!
+
+File System Hierarhy Standard for Server
 
 POST AND DELETE METHODS HANDLE, SO FAR ONLY GET IS HANDLED
-
-truncate semicolon from the last values in the config before appending
 
 KEEP ALIVE TIMER!!!
 
@@ -10,9 +10,7 @@ Stream send files to the client.
 
 PARSE ERROR PAGES FROM THE CONFIG!!!
 
-DOING	requestHandler() as well as error pages and responses;
-
-fix errors try to complie&run;
 remove exits(Failure) inside server loop, disconnect client instead
-File System Hierarhy Standard for Server
 make tokenize() ignore comments
+
+ParseRequest, potentially change to ParseConfig tokenization.

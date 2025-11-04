@@ -14,6 +14,7 @@
 #include "ParseConfig.hpp"
 #include "Client.hpp"
 #include "server.hpp"
+#include <fcntl.h>
 
 #define BUF_SIZE 4096
 #define LISTEN_BACKLOG 50
@@ -21,7 +22,7 @@
 #define MAX_REQUEST_SIZE 8192
 
 void	Server::hints_init(struct addrinfo *hints) {
-	memset(&hints, 0, sizeof(hints));
+	memset(hints, 0, sizeof(*hints));
 	hints->ai_family = AF_UNSPEC;
 	hints->ai_socktype = SOCK_STREAM;
 	hints->ai_flags = AI_PASSIVE;
@@ -48,22 +49,28 @@ void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Clie
 	bytes_read = recv(client_fd, temp_buf, BUF_SIZE, 0);
 	if (bytes_read > 0) {
 		client_req.append(temp_buf);
+		std::cout << "asd" << std::endl;
 		if (client_req.size() > MAX_REQUEST_SIZE) {
+			std::cout << "HTTP/1.1 413 Payload Too Large" << std::endl;
 			send(client_fd, "HTTP/1.1 413 Payload Too Large\r\n\r\n", 32, 0); // TODO
 			this->disconnect_client(client_fd, epoll_fd, clients);
 			return;
 		}
+		std::cout << "qq" << std::endl;
 		if (client.parser.parse(client_req, client.req) == ParseRequest::ParsingComplete) {
+			std::cout << "started handle" << std::endl;
 			this->handler.handle(config, client.req, client_fd);
-			std::cout << "Request parsed successfully:\n" << client_req << std::endl;
+			std::cout << "Request parsed successfully:\n" << std::endl;
 			client_req.clear();
 			return;
 		}
 		else {
+			std::cout << "qq" << std::endl;
 			return;
 		}
 	}
 	else if (bytes_read == 0) {
+		std::cout << "bytes_read == 0" << std::endl;
 		this->disconnect_client(client_fd, epoll_fd, clients);
 	}
 	else {
@@ -76,8 +83,14 @@ void Server::run(const std::string &cfg_file) {
 	struct epoll_event		ev;
 
 	ConfigParser.parse(cfg_file, this->config);
-	std::cout << "qq" << std::endl;
-	this->init_sockets(this->config.getPort());
+
+	std::string port;
+	if (this->config.getPort("listen", port)) {
+		this->init_sockets(port.c_str());
+	} else {
+		std::cerr << "Error: No valid port found." << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
 	if (listen(this->listen_sock, LISTEN_BACKLOG) == -1) {
 		fprintf(stderr, "listen: %s\n", strerror(errno));
@@ -163,6 +176,11 @@ void	Server::run_event_loop(epoll_event *ev) {
 						continue;
 					}
 
+				}
+				if (fcntl(conn_sock, F_SETFL, O_NONBLOCK) == -1) {
+					fprintf(stderr, "fcntl: %s\n", strerror(errno));
+					close(conn_sock);
+					continue;
 				}
 				ev->events = EPOLLIN;
 				ev->data.fd = conn_sock;

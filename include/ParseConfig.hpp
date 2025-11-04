@@ -3,13 +3,9 @@
 #include <string>
 #include "Config.hpp"
 #include "ServerConfig.hpp"
+#include "AParser.hpp"
 
-struct Token {
-	std::string value;
-	size_t		line;
-};
-
-class ParseConfig {
+class ParseConfig : public AParser {
 	public:
 
 		ParseConfig();
@@ -21,13 +17,6 @@ class ParseConfig {
 		void parse(const std::string &path, Config &config);
 
 	private:
-		std::vector<Token>				_tokens;
-		size_t							_token_index;
-	
-		const Token									&getNextToken();
-		const Token									&peekNextToken() const;
-		bool										isAtEnd() const;
-	
 	
 		void										parseServers();
 		void										parseBlock(AConfigBlock &block);
@@ -36,6 +25,4 @@ class ParseConfig {
 		void										syntaxCheck();
 		std::pair<std::string, std::string>			parseLocDirectives(std::vector<std::string> &tokens);
 		Location									parseLocationBlock();
-		std::vector<Token>							tokenize(const std::string &path);
-		std::string									safelyExtractRawStr(const std::string &path);
 };

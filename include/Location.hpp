@@ -21,6 +21,8 @@ class Location : public AConfigBlock {
 		const std::string			&getPath() const { return this->_path; }
 		void						setPath(const std::string &path) { this->_path = path; }
 
+		void						addLimitExceptRules(const std::string &key, const std::string &value);
+
 		// void						_setDirective(const std::string &key, const std::string &value);
         // void						_setMultiDirective(const std::string &key, const std::vector<std::string> &value);
 		// void						_setErrorPage(const std::string &error_code, const std::string &file);
@@ -29,4 +31,5 @@ class Location : public AConfigBlock {
 	private:
 
 		std::string							_path;
+		limitExceptRules					_rules;
 };
