@@ -19,7 +19,7 @@ class RequestHandler {
 
 		std::string			getHttpDate();
 		const Location		*findBestLocationMatch(const Config &serv_cfg, const std::string &url);
-		bool				normalizePath(const std::string &input_path, std::string &resolved_path);
+		bool				normalizePath(std::string &phys_path);
 		std::string			handlePath(const Config &serv_cfg, HttpRequest &req);
 		ResolvedAction		resolveRequestToAction(const Config &serv_cfg, const std::string &req_path);
 		ResolvedAction		checkReqPath(const std::string &path, const Config &cfg, const Location *location);

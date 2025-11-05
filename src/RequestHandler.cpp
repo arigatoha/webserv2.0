@@ -131,15 +131,16 @@ const Location	*RequestHandler::findBestLocationMatch(const Config &serv_cfg, co
 	return best_match;
 }
 
-bool RequestHandler::normalizePath(const std::string &input_path, std::string &resolved_path) {
+bool RequestHandler::normalizePath(std::string &phys_path) {
 	char actual_path[PATH_MAX];
 	
-	std::cout << "input_path:" << input_path << "q" << std::endl;
-	if (realpath(input_path.c_str(), actual_path) == NULL) {
+	std::cout << "input_path:" << phys_path << "q" << std::endl;
+	if (realpath(phys_path.c_str(), actual_path) == NULL) {
 		std::cout << "errno: " << strerror(errno) << std::endl;
 		return false;
 	}
-	resolved_path = actual_path;
+	// handle if request is outside of var/www/ directory TODO
+	phys_path = actual_path;
 	return true;
 }
 
@@ -298,12 +299,24 @@ ResolvedAction	RequestHandler::resolveRequestToAction(const Config &serv_cfg, co
 	std::string		phys_path;
 	
 	const Location *location = findBestLocationMatch(serv_cfg, req_path);
-	// WIP, so far need to handle "//"
 	if (location == NULL) {
 		return resolveErrorAction(404, serv_cfg);
 	}
-	if (normalizePath(location->getPath() + req_path, phys_path) == false) {
-		std::cout << "alesha" << std::endl;
+	if (location->getDirective("root", phys_path) == false) {
+		return resolveErrorAction(500, serv_cfg); // maybe different error
+	}
+	if (req_path == "/") {
+		std::string index;
+		if (!location->getIndex(index))
+			return resolveErrorAction(404, serv_cfg);
+		struct stat st;
+		std::string physAndIdxPath = phys_path + index;
+		if (stat(physAndIdxPath.c_str(), &st) == 0) {
+			return resolveFileAction(physAndIdxPath, &st);
+		} // handle if index not found, autoindex off TODO as well as multiple indexes
+		return resolveErrorAction(404, serv_cfg);
+	}
+	if (normalizePath(phys_path) == false) {
 		return resolveErrorAction(404, serv_cfg);
 	}
 	return checkReqPath(phys_path, serv_cfg, location);
@@ -362,6 +375,7 @@ ResolvedAction RequestHandler::resolveDirAction(const std::string &dir_path, con
 ResolvedAction	RequestHandler::checkReqPath(const std::string &path, const Config &cfg, const Location *location) {
 	struct stat st;
 
+	std::cout << path << std::endl;
 	if (stat(path.c_str(), &st) != 0) {
 		switch(errno) {
 			case ENOENT:

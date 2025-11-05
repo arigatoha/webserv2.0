@@ -62,7 +62,7 @@ void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Clie
 			this->handler.handle(config, client.req, client_fd);
 			std::cout << "Request parsed successfully:" << std::endl;
 			client_req.clear();
-			return;
+			return; 
 		}
 		else {
 			std::cout << "qq" << std::endl;

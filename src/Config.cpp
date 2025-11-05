@@ -20,16 +20,15 @@ Config &Config::operator=(const Config &other) {
 	return *this;
 }
 
-bool    Config::addLocation(const Location &loc) {
-    std::vector<Location>::iterator    it;
+bool    Config::checkIfDuplicate(const std::string &path) const{
+    std::vector<Location>::const_iterator    it;
 
     for (it = _locations.begin(); it != _locations.end(); it++) {
-        if (it->getPath() == loc.getPath()) {
-            return false;
+        if (it->getPath() == path) {
+            return true;
         }
     }
-    _locations.push_back(loc);
-    return true;
+    return false;
 }
 
 const std::vector<Location>		&Config::getLocations() const {
@@ -54,4 +53,9 @@ bool Config::getPort(const std::string &key, std::string &out_val) const {
 		return false;
 	out_val = it->second;
 	return true;
+}
+
+Location					&Config::getNewLocation() {
+    _locations.push_back(Location());
+    return _locations.back();
 }

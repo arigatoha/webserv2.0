@@ -12,3 +12,5 @@ remove exits(Failure) inside server loop, disconnect client instead
 make tokenize() ignore comments
 
 ParseRequest, potentially change to ParseConfig tokenization.
+
+handle if index not found, autoindex off TODO as well as multiple indexes
