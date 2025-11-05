@@ -26,6 +26,13 @@ void ParseConfig::parse(const std::string &cfg_path, Config &config) {
 	
 	syntaxCheck();
 	parseBlock(config);
+	std::vector<Location> loc = config.getLocations();
+	for (Location l : loc) {
+		std::cout << "Location path: " << l.getPath() << std::endl;
+		std::string root;
+		l.getDirective("root", root);
+		std::cout << "root:" << root << std::endl;
+	}
 }
 
 // void		ParseConfig::parseServers() {
@@ -35,9 +42,9 @@ void ParseConfig::parse(const std::string &cfg_path, Config &config) {
 // 	// TODO pushback to server cfgs vector
 // }
 
-Location	ParseConfig::parseLocationBlock() {
+void	ParseConfig::parseLocationBlock(Config &config) {
 	std::string key;
-	Location	loc;
+	Location	&loc = config.getNewLocation();
 	
 	loc.setPath(getNextToken().value);
 	if (getNextToken().value != "{")
@@ -92,7 +99,6 @@ Location	ParseConfig::parseLocationBlock() {
 				loc.setDirective(key, value[0]);
 		}
 	}
-	return loc;
 }
 
 void ParseConfig::parseBlock(AConfigBlock &block) {
@@ -105,15 +111,17 @@ void ParseConfig::parseBlock(AConfigBlock &block) {
 
 		if (key == "}")
 			return;
-		if (key == "location" && peekNextToken().value.find('/') == 0) {
+		if (key == "location") {
 			Config	*serv_cfg = dynamic_cast<Config*>(&block);
 			if (serv_cfg == NULL) {
 				throw std::runtime_error("config error. location block not in the server directive.");
 			}
-			Location loc = parseLocationBlock();
-			if (serv_cfg->addLocation(loc) == false) {
+			std::string loc_path = peekNextToken().value;
+			if (serv_cfg->checkIfDuplicate(loc_path) == true) {
 				throw std::runtime_error("config error. duplicate location.");
 			}
+			
+			parseLocationBlock(*serv_cfg);
 		}
 		else if (key == "limit_except")
 			throw std::runtime_error("limit_except in the server block");
@@ -162,8 +170,7 @@ ParseConfig::ParseConfig(const ParseConfig &other) {
 
 ParseConfig &ParseConfig::operator=(const ParseConfig &other) {
 	if (this != &other) {
-		this->_tokens = other._tokens;
-		this->_token_index = other._token_index;
+		AParser::operator=(other);
 	}
 	return *this;
 }

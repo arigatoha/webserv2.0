@@ -55,9 +55,16 @@ void    AParser::tokenize(const std::string &path) {
 	line = 1;
 	while (tokenStream >> token.value) {
 		_tokens.push_back(token);
-        ++_token_index;
 		if (token.value.find(EOL) != token.value.npos) {
 			++line;
 		}
 	}
+}
+
+AParser &AParser::operator=(const AParser &other) {
+	if (this != &other) {
+		this->_tokens = other._tokens;
+		this->_token_index = other._token_index;
+	}
+	return *this;
 }

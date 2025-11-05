@@ -6,7 +6,7 @@
 #include "Config.hpp"
 #include "AParser.hpp"
 
-class ParseRequest : public AParser {
+class ParseRequest {
 	public:
 
 		enum ParseResult {

@@ -60,9 +60,9 @@ void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Clie
 		if (client.parser.parse(client_req, client.req) == ParseRequest::ParsingComplete) {
 			std::cout << "started handle" << std::endl;
 			this->handler.handle(config, client.req, client_fd);
-			std::cout << "Request parsed successfully:\n" << std::endl;
+			std::cout << "Request parsed successfully:" << std::endl;
 			client_req.clear();
-			return;
+			return; 
 		}
 		else {
 			std::cout << "qq" << std::endl;

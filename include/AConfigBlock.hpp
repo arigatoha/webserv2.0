@@ -16,6 +16,7 @@ class AConfigBlock {
 
 		bool						getErrorPage(int error_code, std::string &out_val) const;
 		bool						getIndexes(std::vector<std::string> &out_val) const;
+		bool						getIndex(std::string &out_val) const;
 		bool						isAutoindexOn() const;
 
 		bool						getDirective(const std::string &key, std::string &out_val) const;
@@ -28,7 +29,11 @@ class AConfigBlock {
 	protected:
 
 		AConfigBlock() {}
-		AConfigBlock(const AConfigBlock &other) { (void)other; }
+		AConfigBlock(const AConfigBlock &other) {	
+			this->_error_pages = other._error_pages;
+			this->_directives = other._directives;
+			this->_multiDirectives = other._multiDirectives;
+		}
 		AConfigBlock &operator=(const AConfigBlock &other) { (void)
 			other; return *this; }
 

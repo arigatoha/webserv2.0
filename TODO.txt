@@ -1,5 +1,3 @@
-RequestHandler line 297!!!
-
 File System Hierarhy Standard for Server
 
 POST AND DELETE METHODS HANDLE, SO FAR ONLY GET IS HANDLED
@@ -14,3 +12,5 @@ remove exits(Failure) inside server loop, disconnect client instead
 make tokenize() ignore comments
 
 ParseRequest, potentially change to ParseConfig tokenization.
+
+handle if index not found, autoindex off TODO as well as multiple indexes

@@ -39,6 +39,10 @@ bool AConfigBlock::getIndexes(std::vector<std::string> &out_val) const {
 	return getMultiDirective("index", out_val);
 }
 
+bool AConfigBlock::getIndex(std::string &out_val) const {
+	return getDirective("index", out_val);
+}
+
 void AConfigBlock::setMultiDirective(const std::string &key, const std::vector<std::string> &value) {
 	if (_multiDirectives.find(key) != _multiDirectives.end())
 		return ;

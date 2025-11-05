@@ -24,5 +24,5 @@ class ParseConfig : public AParser {
 		void										setErrorPage(std::string &error_code, const std::string &file);
 		void										syntaxCheck();
 		std::pair<std::string, std::string>			parseLocDirectives(std::vector<std::string> &tokens);
-		Location									parseLocationBlock();
+		void										parseLocationBlock(Config &config);
 };

@@ -15,12 +15,12 @@ class Config : public AConfigBlock {
 		Config &operator=(const Config &other);
 
 		const std::vector<Location>		&getLocations() const;
-		bool							addLocation(const Location &loc);
+		bool   							checkIfDuplicate(const std::string &path) const;
 		bool							getPort(const std::string &key, std::string &out_val) const;
 
 		bool						getErrorPage(int code, std::string &errorPage) const;
+		Location					&getNewLocation();
 	private:
-
 		void    					setError_page(const std::string &value);
 
     	std::map<int, std::string>			error_pages;
