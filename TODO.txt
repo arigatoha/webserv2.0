@@ -1,5 +1,3 @@
-RequestHandler line 297!!!
-
 File System Hierarhy Standard for Server
 
 POST AND DELETE METHODS HANDLE, SO FAR ONLY GET IS HANDLED

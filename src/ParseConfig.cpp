@@ -25,7 +25,9 @@ void ParseConfig::parse(const std::string &cfg_path, Config &config) {
 	tokenize(cfg_path);
 	
 	syntaxCheck();
+	std::cout << "qq" << std::endl;
 	parseBlock(config);
+	std::cout << "qq" << std::endl;
 }
 
 // void		ParseConfig::parseServers() {
@@ -162,8 +164,7 @@ ParseConfig::ParseConfig(const ParseConfig &other) {
 
 ParseConfig &ParseConfig::operator=(const ParseConfig &other) {
 	if (this != &other) {
-		this->_tokens = other._tokens;
-		this->_token_index = other._token_index;
+		AParser::operator=(other);
 	}
 	return *this;
 }

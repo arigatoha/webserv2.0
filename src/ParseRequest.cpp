@@ -136,19 +136,19 @@ ParseRequest::BodyState	ParseRequest::parseBody(size_t eoh_pos, const std::strin
 
 ParseRequest::ParseResult ParseRequest::parse(const std::string &raw_request, HttpRequest &req) {
 	std::string				_current_line;
-	std::vector<Token>		reqNoBody;
+	std::string				reqNoBody;
 	size_t					eoh_pos;
 
 	eoh_pos = raw_request.find(EOH);
 	if (eoh_pos == raw_request.npos)
 		return ParsingIncomplete;
-	reqNoBody = StringUtils::tokenize(raw_request.substr(0, eoh_pos + 2));
+	reqNoBody = raw_request.substr(0, eoh_pos + 2);
 	
 	_current_line = trimToken(reqNoBody, EOL);
 	parseFirstLine(_current_line, req);
 	
 	parseHeaders(reqNoBody, req);
-	
+
 	if (parseBody(eoh_pos, raw_request, req) == BodyIncomplete)
 		return ParsingIncomplete;
 	
