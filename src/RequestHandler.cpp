@@ -252,17 +252,40 @@ void			RequestHandler::sendDir(const std::string &phys_path, int client_fd, cons
 void RequestHandler::handle(const Config &serv_cfg, const HttpRequest &req, int client_fd) {
 	ResolvedAction	action;
 
-	std::cout << "space in path" << req.getPath() << "q" << std::endl;
-	action = resolveRequestToAction(serv_cfg, req.getPath());
-	switch (action.type) {
-		case ACTION_SERVE_FILE:
-			return sendFile(action, client_fd);
-		case ACTION_GENERATE_ERROR:
-			return sendDefaultError(action.status_code, client_fd);
-		case ACTION_AUTOINDEX:
-			return sendDir(action.target_path, client_fd, req.getPath());
-		default:
-			return sendDefaultError(500, client_fd);
+	if (req.getMethod() == "GET") {
+		action = resolveRequestToAction(serv_cfg, req.getPath());
+		switch (action.type) {
+			case ACTION_SERVE_FILE:
+				return sendFile(action, client_fd);
+			case ACTION_GENERATE_ERROR:
+				return sendDefaultError(action.status_code, client_fd);
+			case ACTION_AUTOINDEX:
+				return sendDir(action.target_path, client_fd, req.getPath());
+			default:
+				return sendDefaultError(500, client_fd);
+		}
+	}
+	else if (req.getMethod() == "POST" && req.getHeader("content-type") == "image/png") {
+		// for now only does CGI, TODO
+		const Location *location = findBestLocationMatch(serv_cfg, req.getPath());
+		if (location == NULL) {
+			resolveErrorAction(404, serv_cfg);
+		}
+		std::string script_type;
+		location->getDirective("allow_cgi", script_type);
+		if (script_type != ".py")
+			resolveErrorAction(404, serv_cfg);
+		std::string root_path;
+		location->getDirective("root", root_path);
+		std::string scriptPhysAddr = root_path + req.getPath(); // query?? TODO
+		if (normalizePath(scriptPhysAddr) == false)
+			resolveErrorAction(404, serv_cfg);
+		struct stat st;
+		if (stat(scriptPhysAddr.c_str(), &st) != 0) {
+			std::cout << "script stat() failed :(" << std::endl;
+			resolveErrorAction(403, serv_cfg);
+		}
+		fork()
 	}
 }
 
