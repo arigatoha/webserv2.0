@@ -1,10 +1,12 @@
-File System Hierarhy Standard for Server
+File System Hierarhy Standard for Server in docker/cmake
 
 POST AND DELETE METHODS HANDLE, SO FAR ONLY GET IS HANDLED
 
 KEEP ALIVE TIMER!!!
 
 Stream send files to the client.
+
+SET UP LOGS
 
 PARSE ERROR PAGES FROM THE CONFIG!!!
 
@@ -14,3 +16,13 @@ make tokenize() ignore comments
 ParseRequest, potentially change to ParseConfig tokenization.
 
 handle if index not found, autoindex off TODO as well as multiple indexes
+
+
+CGI
+1. check if request Content-Type is png and the method is POST
+2. check config location for cgi rule
+3. check physical address of the cgi script in the config
+4. fork() + pipe() server process
+5. set environment variables and run execve()
+6. run open() with "xb" flags
+7. for now create files in the static ./images/ dir
