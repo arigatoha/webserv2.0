@@ -66,6 +66,10 @@ std::string		ParseRequest::getNextLine(std::string &request) {
 	return trimToken(request, EOL);
 }
 
+bool	ParseRequest::hasUnderscore(const std::string &s) const {
+	return s.find('_') != s.npos;
+}
+
 void		ParseRequest::parseHeaders(std::string &request, HttpRequest &req) {
 	std::string		header_line;
 	std::string		key;
@@ -80,6 +84,8 @@ void		ParseRequest::parseHeaders(std::string &request, HttpRequest &req) {
 		if (delim_pos == header_line.npos)
 			break;
 		key = header_line.substr(0, delim_pos);
+		if (hasUnderscore(key))
+			continue;
 		std::transform(key.begin(), key.end(), key.begin(), ::tolower);
 		value = header_line.substr(delim_pos + 1);
 		trimLeftWhitespace(key);

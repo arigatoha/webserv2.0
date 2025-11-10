@@ -17,6 +17,9 @@ ParseRequest, potentially change to ParseConfig tokenization.
 
 handle if index not found, autoindex off TODO as well as multiple indexes
 
+to prevent malicious user, send error 400 in case of same headers in request
+
+parse headers for the cgi
 
 CGI
 1. check if request Content-Type is png and the method is POST
