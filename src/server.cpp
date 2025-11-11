@@ -43,29 +43,19 @@ void	Server::disconnect_client(int client_fd, int epoll_fd, std::map<int, Client
 void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Client> &clients) {
 	ssize_t				bytes_read;
 	char				temp_buf[BUF_SIZE];
-	std::string			&client_req = clients[client_fd].request_buffer;
 	Client &client = clients[client_fd];
 
 	bytes_read = recv(client_fd, temp_buf, BUF_SIZE, 0);
 	if (bytes_read > 0) {
-		client_req.append(temp_buf);
-		std::cout << "asd" << std::endl;
-		if (client_req.size() > MAX_REQUEST_SIZE) {
+		if (bytes_read > MAX_REQUEST_SIZE) {
 			std::cout << "HTTP/1.1 413 Payload Too Large" << std::endl;
 			send(client_fd, "HTTP/1.1 413 Payload Too Large\r\n\r\n", 32, 0); // TODO
 			this->disconnect_client(client_fd, epoll_fd, clients);
 			return;
 		}
-		std::cout << "qq" << std::endl;
-		if (client.parser.parse(client_req, client.req) == ParseRequest::ParsingComplete) {
-			std::cout << "started handle" << std::endl;
-			this->handler.handle(config, client.req, client_fd);
-			std::cout << "Request parsed successfully:" << std::endl;
-			client_req.clear();
-			return; 
-		}
 		else {
-			std::cout << "qq" << std::endl;
+			client.processNewData(temp_buf, bytes_read, this);
+			std::cout << "Request parsed successfully:" << std::endl;
 			return;
 		}
 	}
@@ -82,17 +72,16 @@ void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Clie
 void Server::run(const std::string &cfg_file) {
 	struct epoll_event		ev;
 
-	ConfigParser.parse(cfg_file, this->config);
+	_ConfigParser.parse(cfg_file, this->_config);
 
-	std::string port;
-	if (this->config.getPort("listen", port)) {
-		this->init_sockets(port.c_str());
+	if (this->_config.getPort("listen", _port)) {
+		this->init_sockets(_port.c_str());
 	} else {
 		std::cerr << "Error: No valid port found." << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
-	if (listen(this->listen_sock, LISTEN_BACKLOG) == -1) {
+	if (listen(this->_listen_sock, LISTEN_BACKLOG) == -1) {
 		fprintf(stderr, "listen: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
@@ -113,20 +102,20 @@ void	Server::init_sockets(const char *port) {
 	}
 	optval_int = 1;
 	for (rp = result; rp != NULL; rp = rp->ai_next) {
-		this->listen_sock = socket(rp->ai_family, rp->ai_socktype,
+		this->_listen_sock = socket(rp->ai_family, rp->ai_socktype,
 					rp->ai_protocol);
-		if (this->listen_sock == -1)
+		if (this->_listen_sock == -1)
 			continue;
 
-		if (setsockopt(this->listen_sock, SOL_SOCKET, SO_REUSEADDR, &optval_int, sizeof(int)) == -1) {
+		if (setsockopt(this->_listen_sock, SOL_SOCKET, SO_REUSEADDR, &optval_int, sizeof(int)) == -1) {
 			fprintf(stderr, "setsockopt: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);    
 		}
 
-		if (bind(this->listen_sock, rp->ai_addr, rp->ai_addrlen) == 0)
+		if (bind(this->_listen_sock, rp->ai_addr, rp->ai_addrlen) == 0)
 			break;
 		
-		close(this->listen_sock);
+		close(this->_listen_sock);
 	}
 	freeaddrinfo(result);
 
@@ -138,15 +127,15 @@ void	Server::init_sockets(const char *port) {
 }
 
 void	Server::init_epoll(epoll_event *ev) {
-	this->epoll_fd = epoll_create1(0);
-	if (this->epoll_fd == -1) {
+	this->_epoll_fd = epoll_create1(0);
+	if (this->_epoll_fd == -1) {
 		fprintf(stderr, "epoll_create1: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
 	ev->events = EPOLLIN;
-	ev->data.fd = this->listen_sock;
-	if (epoll_ctl(this->epoll_fd, EPOLL_CTL_ADD, this->listen_sock, ev) == -1) {
+	ev->data.fd = this->_listen_sock;
+	if (epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, this->_listen_sock, ev) == -1) {
 		fprintf(stderr, "epoll_ctl: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
@@ -157,17 +146,17 @@ void	Server::run_event_loop(epoll_event *ev) {
 	struct epoll_event		events[MAX_EVENTS];
 
 	for (;;) {
-		nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+		nfds = epoll_wait(_epoll_fd, events, MAX_EVENTS, -1);
 		if (nfds == -1) {
 			fprintf(stderr, "epoll_wait: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
 		for (int i = 0; i < nfds; ++i) {
-			if (events[i].data.fd == this->listen_sock) {
+			if (events[i].data.fd == this->_listen_sock) {
 				struct	sockaddr_storage	client_addr;
 				socklen_t	clientaddr_len = sizeof(client_addr);
 
-				conn_sock = accept(this->listen_sock, reinterpret_cast<sockaddr*>(&client_addr), &clientaddr_len);
+				conn_sock = accept(this->_listen_sock, reinterpret_cast<sockaddr*>(&client_addr), &clientaddr_len);
 				if (conn_sock == -1) {
 					if (errno == EAGAIN || errno == EWOULDBLOCK)
 						continue;
@@ -184,41 +173,46 @@ void	Server::run_event_loop(epoll_event *ev) {
 				}
 				ev->events = EPOLLIN;
 				ev->data.fd = conn_sock;
-				if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, conn_sock, ev) == -1) {
+				if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, conn_sock, ev) == -1) {
 					fprintf(stderr, "epoll_ctl (conn_sock): %s\n", strerror(errno));
 					close(conn_sock);
 				}
 				else {
-					clients[conn_sock] = Client();
+					_clients[conn_sock] = Client();
 					std::cout << "New connection on fd " << conn_sock << std::endl;
 				}
 			}
 			else {
-				handle_client_event(events[i].data.fd, epoll_fd, clients);
+				handle_client_event(events[i].data.fd, _epoll_fd, _clients);
 			}
 		}
 	}
 }
 
-Server::Server() : listen_sock(-1), epoll_fd(-1) {}
+Server::Server() : _listen_sock(-1), _epoll_fd(-1) {}
 
 Server::~Server() {
-	if (this->listen_sock != -1)
-		close(this->listen_sock);
-	if (this->epoll_fd != -1)
-		close(this->epoll_fd);
+	if (this->_listen_sock != -1)
+		close(this->_listen_sock);
+	if (this->_epoll_fd != -1)
+		close(this->_epoll_fd);
 }
 
 Server::Server(const Server &other) { *this = other; }
 
 Server &Server::operator=(const Server &other) {
 	if (this != &other) {
-		this->listen_sock = other.listen_sock;
-		this->epoll_fd = other.epoll_fd;
-		this->clients = other.clients;
-		this->config = other.config;
-		this->ConfigParser = other.ConfigParser;
-		this->handler = other.handler;
+		this->_listen_sock = other._listen_sock;
+		this->_epoll_fd = other._epoll_fd;
+		this->_clients = other._clients;
+		this->_config = other._config;
+		this->_ConfigParser = other._ConfigParser;
+		this->_handler = other._handler;
 	}
 	return *this;
+}
+
+const std::string &
+Server::port() const {
+	return _port;
 }

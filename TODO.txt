@@ -21,6 +21,14 @@ to prevent malicious user, send error 400 in case of same headers in request
 
 parse headers for the cgi
 
+check if happens if the client runs CGI and instantly sends totally different request (potentially should save current request state in cgi)
+
+store IPV4 or IPV6 in Client, also pass it to the CGI (inet_ntop  #include <arpa/inet.h>)
+
+add extern for c libs
+
+potentially dynamically allocate memore if keep_alive in CLient.cpp
+
 CGI
 1. check if request Content-Type is png and the method is POST
 2. check config location for cgi rule

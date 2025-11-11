@@ -19,6 +19,8 @@ class HttpRequest {
 		const std::string	&getBody() const;
 		const std::string	&getHeader(const std::string &key) const;
 
+		const std::map<std::string, std::string>	&headers() const;
+
 		void				setPath(const std::string &path);
 		void				setMethod(const std::string &method);
 		void				setVersion(const std::string &version);

@@ -49,3 +49,9 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &other) {
 	}
 	return *this;
 }
+
+const std::map<std::string, std::string>	&
+HttpRequest::headers() const {
+	return _headers;
+}
+

@@ -9,12 +9,12 @@ Config::Config() {
 
 Config::~Config() {}
 
-Config::Config(const Config &other) : AConfigBlock(other), error_pages(other.error_pages), _locations(other._locations) {}
+Config::Config(const Config &other) : AConfigBlock(other), _error_pages(other._error_pages), _locations(other._locations) {}
 
 Config &Config::operator=(const Config &other) {
 	if (this != &other) {
 		AConfigBlock::operator=(other);
-		this->error_pages = other.error_pages;
+		this->_error_pages = other._error_pages;
 		this->_locations = other._locations;
 	}
 	return *this;
@@ -38,8 +38,8 @@ const std::vector<Location>		&Config::getLocations() const {
 bool		Config::getErrorPage(int code, std::string &errorPage) const {
     std::map<int, std::string>::const_iterator	it;
 
-    it = error_pages.find(code);
-    if (it == error_pages.end())
+    it = _error_pages.find(code);
+    if (it == _error_pages.end())
         return false;
     errorPage = it->second;
     return true;
@@ -54,6 +54,9 @@ bool Config::getPort(const std::string &key, std::string &out_val) const {
 	out_val = it->second;
 	return true;
 }
+
+void
+Config::port
 
 Location					&Config::getNewLocation() {
     _locations.push_back(Location());
