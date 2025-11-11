@@ -17,14 +17,16 @@ class Server {
 
         void    run(const std::string &cfg_file);
 
+        const std::string     &port() const;
     private:
 
-        int                     listen_sock;
-        int                     epoll_fd;
-        std::map<int, Client>   clients;
-        Config                  config;
-        ParseConfig				ConfigParser;
-        RequestHandler          handler;
+        std::string             _port;
+        int                     _listen_sock;
+        int                     _epoll_fd;
+        std::map<int, Client>   _clients;
+        Config                  _config;
+        ParseConfig				_ConfigParser;
+        RequestHandler          _handler;
 
         std::string		generate_response(Client &client);
         void    		init_epoll(epoll_event *ev);

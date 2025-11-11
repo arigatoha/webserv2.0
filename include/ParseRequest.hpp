@@ -43,4 +43,5 @@ class ParseRequest {
 		void							parseHttpVer(std::string &line_remainder, HttpRequest &req);
 		void							parseHeaders(std::string &line, HttpRequest &req);
 		BodyState						parseBody(size_t eoh_pos, const std::string &raw_request, HttpRequest &req);
+		bool							hasUnderscore(const std::string &s) const;
 };	

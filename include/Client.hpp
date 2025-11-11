@@ -4,19 +4,26 @@
 #include "httpRequest.hpp"
 #include "ParseRequest.hpp"
 
+class Server;
+
 class Client {
 	public:
-
-		std::string request_buffer;
-		
-        int		keep_alive_timer;
-
-        ParseRequest    parser;
-		HttpRequest     req;
 
 		Client();
 		~Client();
 
 		Client(const Client &other);
 		Client &operator=(const Client &other);
+
+		const HttpRequest &req() const;
+		
+		void processNewData(const char *data, ssize_t len, Server *server);
+
+	private:
+
+		std::string		_request_buffer;
+        int				_keep_alive_timer;
+        ParseRequest    _parser;
+		HttpRequest     _req;
+
 };

@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <iostream>
 #include <string.h>
+#include <unistd.h>
 
 #define SBUF 4096
 
@@ -285,7 +286,24 @@ void RequestHandler::handle(const Config &serv_cfg, const HttpRequest &req, int 
 			std::cout << "script stat() failed :(" << std::endl;
 			resolveErrorAction(403, serv_cfg);
 		}
-		fork()
+		pid_t	cpid;
+		int		pipefd[2];
+
+		if (pipe(pipefd) == -1) {
+			std::cout << "pipe" << std::endl;
+			resolveErrorAction(500, serv_cfg);
+		}
+		cpid = fork();
+		if (cpid == -1) {
+			std::cout << "fork" << std::endl;
+			resolveErrorAction(500, serv_cfg);
+		}
+		if (cpid == 0) {
+
+		}
+		else {
+			
+		}
 	}
 }
 

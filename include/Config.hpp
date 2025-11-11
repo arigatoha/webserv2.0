@@ -23,8 +23,7 @@ class Config : public AConfigBlock {
 	private:
 		void    					setError_page(const std::string &value);
 
-    	std::map<int, std::string>			error_pages;
+    	std::map<int, std::string>			_error_pages;
 		std::vector<Location>				_locations;
-		
-
+		int									_port;
 };
