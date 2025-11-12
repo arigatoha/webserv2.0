@@ -15,11 +15,10 @@
 #include "Client.hpp"
 #include "server.hpp"
 #include <fcntl.h>
+#include <arpa/inet.h>
 
-#define BUF_SIZE 4096
 #define LISTEN_BACKLOG 50
 #define MAX_EVENTS 10
-#define MAX_REQUEST_SIZE 8192
 
 void	Server::hints_init(struct addrinfo *hints) {
 	memset(hints, 0, sizeof(*hints));
@@ -31,43 +30,15 @@ void	Server::hints_init(struct addrinfo *hints) {
 	hints->ai_next = NULL;
 }
 
-void	Server::disconnect_client(int client_fd, int epoll_fd, std::map<int, Client> &clients) {
-	if (epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, NULL) == -1) {
+void	Server::disconnect_client(int client_fd) {
+	if (epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client_fd, NULL) == -1) {
 		fprintf(stderr, "epoll_ctl (DEL): %s\n", strerror(errno));
 	}
 	close(client_fd);
-	clients.erase(client_fd);
+	_clients.erase(client_fd);
 	std::cout << "Client on fd " << client_fd << " disconnected." << std::endl;
 }
 
-void	Server::handle_client_event(int client_fd, int epoll_fd, std::map<int, Client> &clients) {
-	ssize_t				bytes_read;
-	char				temp_buf[BUF_SIZE];
-	Client &client = clients[client_fd];
-
-	bytes_read = recv(client_fd, temp_buf, BUF_SIZE, 0);
-	if (bytes_read > 0) {
-		if (bytes_read > MAX_REQUEST_SIZE) {
-			std::cout << "HTTP/1.1 413 Payload Too Large" << std::endl;
-			send(client_fd, "HTTP/1.1 413 Payload Too Large\r\n\r\n", 32, 0); // TODO
-			this->disconnect_client(client_fd, epoll_fd, clients);
-			return;
-		}
-		else {
-			client.processNewData(temp_buf, bytes_read, this);
-			std::cout << "Request parsed successfully:" << std::endl;
-			return;
-		}
-	}
-	else if (bytes_read == 0) {
-		std::cout << "bytes_read == 0" << std::endl;
-		this->disconnect_client(client_fd, epoll_fd, clients);
-	}
-	else {
-		fprintf(stderr, "Client: %s port\n", strerror(errno));
-		this->disconnect_client(client_fd, epoll_fd, clients);
-	}
-}
 
 void Server::run(const std::string &cfg_file) {
 	struct epoll_event		ev;
@@ -178,12 +149,13 @@ void	Server::run_event_loop(epoll_event *ev) {
 					close(conn_sock);
 				}
 				else {
-					_clients[conn_sock] = Client();
+					std::pair<std::string, std::string> ipPort = getClientAddr(client_addr);
+					_clients[conn_sock] = Client(ipPort.first, ipPort.second, conn_sock);
 					std::cout << "New connection on fd " << conn_sock << std::endl;
 				}
 			}
 			else {
-				handle_client_event(events[i].data.fd, _epoll_fd, _clients);
+				handle_client_event(conn_sock);
 			}
 		}
 	}
@@ -215,4 +187,42 @@ Server &Server::operator=(const Server &other) {
 const std::string &
 Server::port() const {
 	return _port;
+}
+
+std::pair<std::string, std::string>
+Server::getClientAddr(struct sockaddr_storage &client_addr) {
+	sockaddr								*sock_addr = reinterpret_cast<sockaddr *>(&client_addr);
+	std::pair<std::string, std::string>		ipPort;
+	char									ip_cstr[INET6_ADDRSTRLEN];
+
+	if (sock_addr->sa_family == AF_INET) {
+		sockaddr_in *sa_in = reinterpret_cast<sockaddr_in*>(sock_addr);
+		if (inet_ntop(AF_INET, &sa_in->sin_addr, ip_cstr, sizeof(ip_cstr)) == NULL) {
+			std::cerr << "inet_ntop ipv4" << "\n";
+		}
+		ipPort.second = std::to_string(ntohs(sa_in->sin_port));
+	}
+	else {
+		sockaddr_in6 *sa_in6 = reinterpret_cast<sockaddr_in6*>(sock_addr);
+		if (inet_ntop(AF_INET6, &sa_in6->sin6_addr, ip_cstr, sizeof(ip_cstr)) == NULL) {
+			std::cerr << "inet_ntop ipv6" << "\n";
+		}
+		ipPort.second = std::to_string(ntohs(sa_in6->sin6_port));
+	}
+	ipPort.first = ip_cstr;
+
+	return ipPort;
+}
+
+void
+Server::handle_client_event(int client_fd) {
+	Client &client = _clients.at(client_fd);
+
+	client.processNewData(this);
+
+	if (client.ready()) {
+		_handler.handle(_config, client.req(), client_fd);
+
+		client.reset();
+	}
 }

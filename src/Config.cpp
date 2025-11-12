@@ -55,8 +55,8 @@ bool Config::getPort(const std::string &key, std::string &out_val) const {
 	return true;
 }
 
-void
-Config::port
+// void
+// Config::port
 
 Location					&Config::getNewLocation() {
     _locations.push_back(Location());

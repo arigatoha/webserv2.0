@@ -17,7 +17,9 @@ class Server {
 
         void    run(const std::string &cfg_file);
 
-        const std::string     &port() const;
+        void    		        				disconnect_client(int client_fd);
+        const std::string       				&port() const;
+        std::pair<std::string, std::string>		getClientAddr(struct sockaddr_storage &client_addr);
     private:
 
         std::string             _port;
@@ -28,12 +30,12 @@ class Server {
         ParseConfig				_ConfigParser;
         RequestHandler          _handler;
 
+        
         std::string		generate_response(Client &client);
         void    		init_epoll(epoll_event *ev);
         void    		init_sockets(const char *port);
         void    		run_event_loop(epoll_event *ev);
         void    		hints_init(struct addrinfo *hints);
         void    		handle_new_connection();
-        void    		handle_client_event(int client_fd, int epoll_fd, std::map<int, Client> &clients);
-        void    		disconnect_client(int client_fd, int epoll_fd, std::map<int, Client> &clients);
+        void    		handle_client_event(int client_fd);
 };
