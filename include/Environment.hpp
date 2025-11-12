@@ -25,16 +25,16 @@ class Environment {
 
     private:
         
-        std::vector<std::string>    _vsenv;
-        char                        **_cenv;
         const Client                &_client;
         const Server                &_server;
-		const Location				&_loc;
+        const Location				&_loc;
+        std::vector<std::string>    _vsenv;
+        char                        **_cenv;
 
         void            append(const std::string &key, const std::string &val);
         void            append(const std::map<std::string, std::string> &);
         std::string     env_str(const std::string &key, const std::string &val);
-        std::string     trans_key(std::string &key);
+        static char            trans_char(char c);
 
         void            _build_cenv();
 

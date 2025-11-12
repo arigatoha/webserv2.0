@@ -36,7 +36,7 @@ Environment::build() {
     append("SERVER_PORT", _server.port());
     append("REQUEST_METHOD", req.getMethod());
     // if (req.getQuery().size()) TODO: PATH_INFO and PATH_TRANSLATED
-    append("");
+    // append("");
 
     try {
        append("CONTENT_TYPE", req.getHeader("content-type"));
@@ -66,7 +66,7 @@ Environment::append(const std::map<std::string, std::string> &hdrs) {
 
     for (std::map<std::string, std::string>::const_iterator it = hdrs.begin(); it != hdrs.end(); ++it) {
         key = it->first;
-        std::transform(key.begin(), key.end(), key.begin(), trans_key(key));
+        std::transform(key.begin(), key.end(), key.begin(), trans_char);
         if (key == "CONTENT_TYPE" || key == "CONTENT_LENGTH")
             continue;
         key = "HTTP_" + key;
@@ -74,12 +74,9 @@ Environment::append(const std::map<std::string, std::string> &hdrs) {
     }
 }
 
-std::string
-Environment::trans_key(std::string &key) {
-    for (int i = 0; i < key.size(); ++i) {
-        key[i] = (key[i] == '-') ? '_' : std::toupper(key[i]);
-    }
-    return key;
+char
+Environment::trans_char(char c) {
+    return (c == '-') ? '_' : std::toupper(c); 
 }
 
 std::string
