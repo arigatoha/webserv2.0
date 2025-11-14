@@ -5,6 +5,8 @@
 #include "Config.hpp"
 #include "ResolvedAction.hpp"
 
+class Server;
+
 class RequestHandler {
 	public:
 		RequestHandler();
@@ -13,7 +15,7 @@ class RequestHandler {
 		RequestHandler(const RequestHandler &other);
 		RequestHandler &operator=(const RequestHandler &other);
 		
-		void		handle(const Config &serv_cfg, const HttpRequest &req, int client_fd);
+		void		handle(const Config &serv_cfg, const HttpRequest &req, int client_fd, Server *server);
 		
 	private:
 

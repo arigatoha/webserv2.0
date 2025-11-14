@@ -20,6 +20,9 @@ class Server {
         void    		        				disconnect_client(int client_fd);
         const std::string       				&port() const;
         std::pair<std::string, std::string>		getClientAddr(struct sockaddr_storage &client_addr);
+
+        bool                                    epoll_add_cgi(int cgi_sock, uint32_t events_io_flag);
+
     private:
 
         std::string             _port;
