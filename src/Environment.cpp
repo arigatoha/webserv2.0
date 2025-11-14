@@ -1,11 +1,18 @@
 #include "Environment.hpp"
 #include <algorithm>
 #include <stdexcept>
+#include <cstring>
+#include "server.hpp"
+#include "httpRequest.hpp"
+#include <iostream>
 
-Environment::Environment(const Client &client, const Server &server, const Location &loc) :
-    _client(client),
+size_t Environment::_parent_env_size = 0;
+char **Environment::_parent_env = NULL;
+
+Environment::Environment(const HttpRequest &req, const Server &server) :
+    _req(req),
     _server(server),
-    _loc(loc),
+    // _loc(loc),
     _cenv(NULL) {}
 
 Environment::~Environment() {
@@ -13,9 +20,9 @@ Environment::~Environment() {
 }
 
 Environment::Environment(const Environment &other) :
-    _client(other._client),
+    _req(other._req),
     _server(other._server),
-    _loc(other._loc),
+    // _loc(other._loc),
     _cenv(NULL) // shallow copy
 { *this = other; }
 
@@ -29,30 +36,57 @@ Environment::operator=(const Environment &other) {
 
 void
 Environment::build() {
-    _vsenv.reserve(dfl_size + _client.req().headers().size());
-
-    const HttpRequest &req = _client.req();
+    _vsenv.reserve(dfl_size + _req.headers().size());
 
     append("SERVER_PORT", _server.port());
-    append("REQUEST_METHOD", req.getMethod());
+    append("REQUEST_METHOD", _req.getMethod());
     // if (req.getQuery().size()) TODO: PATH_INFO and PATH_TRANSLATED
-    // append("");
+    append("REQUEST_PATH", _req.getPath());
+    append("REQUEST_QUERY", _req.getQuery());
+    append("SERVER_PROTOCOL", _req.getVersion());
+    // append("SCRIPT_NAME", _loc.) // redirect?
 
-    try {
-       append("CONTENT_TYPE", req.getHeader("content-type"));
-    } catch (std::out_of_range &) {}
-    try {
-       append("CONTENT_LENGTH", req.getHeader("content-length"));
-    } catch (std::out_of_range &) {}
+    // try {
+    //    append("CONTENT_TYPE", _req.getHeader("content-type"));
+    // } catch (std::out_of_range &) {}
+    // try {
+    //    append("CONTENT_LENGTH", _req.getHeader("content-length"));
+    // } catch (std::out_of_range &) {}
 
-    append(req.headers());
+    append(_req.headers());
 
     _build_cenv();
 }
 
 void
 Environment::_build_cenv() {
-    return;
+    size_t const total_size = _parent_env_size + static_size + _vsenv.size();
+    // delete before?
+    _cenv = new char*[total_size + 1];
+    
+    char ** const &parent_offset = _cenv + _parent_env_size;
+    char ** const &static_offset = parent_offset + static_size;
+    
+    memmove(_cenv, _parent_env, _parent_env_size * sizeof(char *));
+    memmove(parent_offset, static_env, static_size * sizeof(char *));
+
+    std::vector<std::string>::iterator it = _vsenv.begin();
+    for (size_t i = 0; it != _vsenv.end(); ++i, ++it) {
+        std::string &str = *it;
+        static_offset[i] = const_cast<char*>(str.c_str()); //TODO mb try to remove const_cast alter
+    }
+
+    _cenv[total_size] = nullptr;
+}
+
+void
+Environment::init_env(char **envp) {
+    _parent_env = envp;
+
+    if (envp) {
+        while (envp[_parent_env_size])
+            ++_parent_env_size;
+    }
 }
 
 void
@@ -82,4 +116,10 @@ Environment::trans_char(char c) {
 std::string
 Environment::env_str(const std::string &key, const std::string &val) {
     return key + '=' + val;
+}
+
+char * const*
+Environment::getEnvp() const {
+    char * const* envp = const_cast<char**>(_cenv);
+    return  envp;
 }

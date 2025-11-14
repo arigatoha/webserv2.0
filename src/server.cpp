@@ -161,6 +161,22 @@ void	Server::run_event_loop(epoll_event *ev) {
 	}
 }
 
+bool
+Server::epoll_add_cgi(int cgi_sock, uint32_t events_io_flag) {
+	epoll_event	ev;
+
+	ev.events = events_io_flag;
+	ev.data.fd = cgi_sock;
+
+	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, cgi_sock, &ev) == -1) {
+		fprintf(stderr, "epoll_ctl (conn_sock): %s\n", strerror(errno));
+		close(cgi_sock);
+		return false;
+	}
+
+	return true;
+}
+
 Server::Server() : _listen_sock(-1), _epoll_fd(-1) {}
 
 Server::~Server() {
@@ -168,6 +184,10 @@ Server::~Server() {
 		close(this->_listen_sock);
 	if (this->_epoll_fd != -1)
 		close(this->_epoll_fd);
+	// std::map<int, Client>::iterator it = _clients.begin();
+	// for (;it != _clients.end(); ++it) {
+	// 	delete &it->second;
+	// }
 }
 
 Server::Server(const Server &other) { *this = other; }
@@ -216,13 +236,20 @@ Server::getClientAddr(struct sockaddr_storage &client_addr) {
 
 void
 Server::handle_client_event(int client_fd) {
-	Client &client = _clients.at(client_fd);
+	try {
+		Client &client = _clients.at(client_fd);
 
-	client.processNewData(this);
-
-	if (client.ready()) {
-		_handler.handle(_config, client.req(), client_fd);
-
-		client.reset();
+		client.processNewData(this);
+	
+		if (client.ready()) {
+			_handler.handle(_config, client.req(), client_fd, this);
+	
+			client.reset();
+		}
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+		std::cout << "client cyka" << std::endl;
 	}
 }
